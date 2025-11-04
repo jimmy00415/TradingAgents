@@ -17,7 +17,9 @@ from tradingagents.agents.utils.news_data_tools import (
     get_news,
     get_insider_sentiment,
     get_insider_transactions,
-    get_global_news
+    get_global_news,
+    get_economic_calendar,
+    get_upcoming_earnings
 )
 
 def create_msg_delete():
