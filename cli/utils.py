@@ -1,6 +1,8 @@
 import questionary
 from typing import List, Optional, Tuple, Dict
 
+from rich.console import Console
+
 from cli.models import AnalystType
 
 ANALYST_ORDER = [
@@ -9,6 +11,9 @@ ANALYST_ORDER = [
     ("News Analyst", AnalystType.NEWS),
     ("Fundamentals Analyst", AnalystType.FUNDAMENTALS),
 ]
+
+
+console = Console()
 
 
 def get_ticker() -> str:
@@ -127,6 +132,12 @@ def select_shallow_thinking_agent(provider) -> str:
 
     # Define shallow thinking llm engine options with their corresponding model names
     SHALLOW_AGENT_OPTIONS = {
+        "azure": [
+            ("GPT-5 Mini - HKBU fast reasoning deployment", "gpt-5-mini"),
+            ("GPT-4.1 Mini - HKBU balanced deployment", "gpt-4.1-mini"),
+            ("O3 Mini - HKBU advanced reasoning", "o3-mini"),
+            ("DeepSeek R1 - HKBU reasoning specialist", "deepseek-r1"),
+        ],
         "openai": [
             ("GPT-4o-mini - Fast and efficient for quick tasks", "gpt-4o-mini"),
             ("GPT-4.1-nano - Ultra-lightweight model for basic operations", "gpt-4.1-nano"),
@@ -155,11 +166,14 @@ def select_shallow_thinking_agent(provider) -> str:
         ]
     }
 
+    provider_key = provider.lower()
+    options = SHALLOW_AGENT_OPTIONS.get(provider_key, SHALLOW_AGENT_OPTIONS["openai"])
+
     choice = questionary.select(
         "Select Your [Quick-Thinking LLM Engine]:",
         choices=[
             questionary.Choice(display, value=value)
-            for display, value in SHALLOW_AGENT_OPTIONS[provider.lower()]
+            for display, value in options
         ],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
@@ -185,6 +199,13 @@ def select_deep_thinking_agent(provider) -> str:
 
     # Define deep thinking llm engine options with their corresponding model names
     DEEP_AGENT_OPTIONS = {
+        "azure": [
+            ("GPT-5 - HKBU flagship deployment", "gpt-5"),
+            ("GPT-4.1 - HKBU enterprise deployment", "gpt-4.1"),
+            ("O1 - HKBU strategic reasoning", "o1"),
+            ("Qwen3 Max - HKBU multilingual reasoning", "qwen3-max"),
+            ("DeepSeek V3 - HKBU high-capacity model", "deepseek-v3"),
+        ],
         "openai": [
             ("GPT-4.1-nano - Ultra-lightweight model for basic operations", "gpt-4.1-nano"),
             ("GPT-4.1-mini - Compact model with good performance", "gpt-4.1-mini"),
@@ -217,11 +238,14 @@ def select_deep_thinking_agent(provider) -> str:
         ]
     }
     
+    provider_key = provider.lower()
+    options = DEEP_AGENT_OPTIONS.get(provider_key, DEEP_AGENT_OPTIONS["openai"])
+
     choice = questionary.select(
         "Select Your [Deep-Thinking LLM Engine]:",
         choices=[
             questionary.Choice(display, value=value)
-            for display, value in DEEP_AGENT_OPTIONS[provider.lower()]
+            for display, value in options
         ],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
@@ -243,6 +267,7 @@ def select_llm_provider() -> tuple[str, str]:
     """Select the OpenAI api url using interactive selection."""
     # Define OpenAI api options with their corresponding endpoints
     BASE_URLS = [
+        ("HKBU GenAI (Azure Compatible)", "https://genai.hkbu.edu.hk/api/v0/rest"),
         ("OpenAI", "https://api.openai.com/v1"),
         ("Anthropic", "https://api.anthropic.com/"),
         ("Google", "https://generativelanguage.googleapis.com/v1"),

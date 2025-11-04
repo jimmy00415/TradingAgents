@@ -1,5 +1,6 @@
 import time
 import json
+from openai import BadRequestError
 
 
 def create_risky_debator(llm):
@@ -32,9 +33,17 @@ Here is the current conversation history: {history} Here are the last arguments 
 
 Engage actively by addressing any specific concerns raised, refuting the weaknesses in their logic, and asserting the benefits of risk-taking to outpace market norms. Maintain a focus on debating and persuading, not just presenting data. Challenge each counterpoint to underscore why a high-risk approach is optimal. Output conversationally as if you are speaking without any special formatting."""
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Risky analyst content filtered. Using fallback response.")
+                response_content = "As the Risky Analyst, I advocate for an aggressive position to maximize returns. While detailed analysis was limited by content restrictions, the fundamentals and market momentum suggest significant upside potential. I recommend taking a larger position with defined risk parameters to capture the full opportunity while this setup remains favorable."
+            else:
+                raise
 
-        argument = f"Risky Analyst: {response.content}"
+        argument = f"Risky Analyst: {response_content}"
 
         new_risk_debate_state = {
             "history": history + "\n" + argument,

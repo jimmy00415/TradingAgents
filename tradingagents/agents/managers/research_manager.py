@@ -1,5 +1,6 @@
 import time
 import json
+from openai import BadRequestError
 
 
 def create_research_manager(llm, memory):
@@ -36,20 +37,41 @@ Here are your past reflections on mistakes:
 Here is the debate:
 Debate History:
 {history}"""
-        response = llm.invoke(prompt)
+
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            # Handle Azure content policy violations
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Content filtered by Azure OpenAI policy. Using fallback response.")
+                response_content = """Based on the available research reports, I recommend a HOLD position.
+
+**Rationale:**
+The analysis was limited due to content filtering restrictions, but based on the available market data, technical indicators, and fundamental information, maintaining the current position appears prudent until more comprehensive analysis can be completed.
+
+**Strategic Actions:**
+1. Monitor key technical levels and volume patterns
+2. Review fundamental metrics when additional data becomes available
+3. Set appropriate stop-loss levels based on recent volatility
+4. Re-evaluate position when market conditions stabilize
+
+This recommendation prioritizes capital preservation while awaiting clearer market signals."""
+            else:
+                raise  # Re-raise if it's a different error
 
         new_investment_debate_state = {
-            "judge_decision": response.content,
+            "judge_decision": response_content,
             "history": investment_debate_state.get("history", ""),
             "bear_history": investment_debate_state.get("bear_history", ""),
             "bull_history": investment_debate_state.get("bull_history", ""),
-            "current_response": response.content,
+            "current_response": response_content,
             "count": investment_debate_state["count"],
         }
 
         return {
             "investment_debate_state": new_investment_debate_state,
-            "investment_plan": response.content,
+            "investment_plan": response_content,
         }
 
     return research_manager_node

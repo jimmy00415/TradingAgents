@@ -1,17 +1,23 @@
 from typing import Optional
 import datetime
+import os
+import re
 import typer
 from pathlib import Path
 from functools import wraps
 from rich.console import Console
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.live import Live
 from rich.columns import Columns
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# VERSION CHECK - This confirms the fixed version is loaded
+__CLI_VERSION__ = "AZURE_FIX_V2"
+print(f"[CLI VERSION CHECK] Loaded cli.main version: {__CLI_VERSION__}")
 from rich.markdown import Markdown
 from rich.layout import Layout
 from rich.text import Text
@@ -398,7 +404,7 @@ def update_display(layout, spinner_text=None):
 def get_user_selections():
     """Get all user selections before starting the analysis display."""
     # Display ASCII art welcome message
-    with open("./cli/static/welcome.txt", "r") as f:
+    with open("./cli/static/welcome.txt", "r", encoding="utf-8") as f:
         welcome_ascii = f.read()
 
     # Create welcome box content
@@ -474,6 +480,44 @@ def get_user_selections():
         )
     )
     selected_llm_provider, backend_url = select_llm_provider()
+
+    def normalize_provider(name: str) -> str:
+        if not name:
+            return ""
+        return re.sub(r"[^a-z0-9]+", "", name.lower())
+
+    normalized_provider = normalize_provider(selected_llm_provider)
+
+    # Map provider name to internal format (normalized to avoid spacing/punctuation issues)
+    provider_map = {
+        normalize_provider("HKBU GenAI (School Platform)"): "azure",  # HKBU uses Azure OpenAI format
+        normalize_provider("HKBU GenAI (Azure Compatible)"): "azure",
+        normalize_provider("Azure (HKBU GenAI)"): "azure",
+        normalize_provider("HKBU GenAI"): "azure",
+        normalize_provider("OpenAI"): "openai",
+        normalize_provider("Anthropic"): "anthropic",
+        normalize_provider("Google"): "google",
+        normalize_provider("OpenRouter"): "openrouter",
+        normalize_provider("Ollama"): "ollama",
+    }
+
+    internal_provider = provider_map.get(normalized_provider)
+
+    if internal_provider is None:
+        if backend_url and "genai.hkbu.edu.hk" in backend_url.lower():
+            internal_provider = "azure"
+        elif "hkbu" in normalized_provider:
+            internal_provider = "azure"
+        else:
+            internal_provider = selected_llm_provider.strip().lower()
+
+    display_provider = selected_llm_provider.strip()
+
+    # Debug output for provider mapping
+    console.print(f"\n[cyan]Provider Mapping Debug:[/cyan]")
+    console.print(f"  Selected: '{display_provider}'")
+    console.print(f"  Normalized: '{normalized_provider}'")
+    console.print(f"  Mapped to: '{internal_provider}'")
     
     # Step 6: Thinking agents
     console.print(
@@ -481,15 +525,17 @@ def get_user_selections():
             "Step 6: Thinking Agents", "Select your thinking agents for analysis"
         )
     )
-    selected_shallow_thinker = select_shallow_thinking_agent(selected_llm_provider)
-    selected_deep_thinker = select_deep_thinking_agent(selected_llm_provider)
+    selected_shallow_thinker = select_shallow_thinking_agent(internal_provider)
+    selected_deep_thinker = select_deep_thinking_agent(internal_provider)
 
     return {
         "ticker": selected_ticker,
         "analysis_date": analysis_date,
         "analysts": selected_analysts,
         "research_depth": selected_research_depth,
-        "llm_provider": selected_llm_provider.lower(),
+        "llm_provider": internal_provider,
+        "llm_provider_internal": internal_provider,
+        "llm_provider_display": display_provider,
         "backend_url": backend_url,
         "shallow_thinker": selected_shallow_thinker,
         "deep_thinker": selected_deep_thinker,
@@ -498,7 +544,59 @@ def get_user_selections():
 
 def get_ticker():
     """Get ticker symbol from user input."""
-    return typer.prompt("", default="SPY")
+    console.print("[yellow]Enter stock ticker (e.g., SPY, AAPL, TSLA)[/yellow]")
+    console.print("[dim]Tip: Just press Enter to use SPY[/dim]")
+    
+    while True:
+        raw_input = typer.prompt("", default="SPY")
+        
+        # Aggressive cleaning
+        ticker = str(raw_input).strip()
+        
+        # Remove ALL types of quotes
+        ticker = ticker.strip('"').strip("'").strip('"').strip('"')
+        
+        # Remove any whitespace
+        ticker = ticker.strip()
+        
+        # If empty after cleaning, use default
+        if not ticker:
+            ticker = "SPY"
+            console.print(f"[green]Using default ticker: {ticker}[/green]")
+            return ticker
+            
+        # Check for file extensions first (strong indicator of invalid input)
+        invalid_extensions = ['.bat', '.exe', '.ps1', '.py', '.sh', '.cmd', '.com']
+        if any(ext in ticker.lower() for ext in invalid_extensions):
+            console.print(f"[red]❌ Invalid input detected: File path or script name[/red]")
+            console.print(f"[yellow]You entered: {raw_input}[/yellow]")
+            console.print(f"[yellow]Please enter a stock ticker symbol only (e.g., SPY, AAPL)[/yellow]")
+            continue
+        
+        # Check for path separators
+        if any(c in ticker for c in ['/', '\\', ':']):
+            console.print(f"[red]❌ Invalid ticker: Contains path characters[/red]")
+            console.print(f"[yellow]You entered: {ticker}[/yellow]")
+            console.print(f"[yellow]Please enter a stock ticker symbol only (e.g., SPY, AAPL)[/yellow]")
+            continue
+        
+        # Convert to uppercase and validate format
+        ticker = ticker.upper()
+        
+        # Allow only alphanumeric plus . and -
+        if not ticker.replace('.', '').replace('-', '').isalnum():
+            console.print(f"[red]❌ Invalid ticker format: {ticker}[/red]")
+            console.print(f"[yellow]Ticker should contain only letters, numbers, dots, or hyphens[/yellow]")
+            continue
+        
+        # Final sanity check - reasonable length
+        if len(ticker) > 10:
+            console.print(f"[red]❌ Ticker too long: {ticker}[/red]")
+            console.print(f"[yellow]Stock tickers are usually 1-5 characters[/yellow]")
+            continue
+            
+        console.print(f"[green]✓ Using ticker: {ticker}[/green]")
+        return ticker
 
 
 def get_analysis_date():
@@ -746,7 +844,28 @@ def run_analysis():
     config["quick_think_llm"] = selections["shallow_thinker"]
     config["deep_think_llm"] = selections["deep_thinker"]
     config["backend_url"] = selections["backend_url"]
-    config["llm_provider"] = selections["llm_provider"].lower()
+
+    # Resolve provider values
+    internal_provider = selections.get("llm_provider_internal", selections["llm_provider"])
+    display_provider = selections.get("llm_provider_display", selections["llm_provider"])
+
+    config["llm_provider"] = internal_provider
+    config["llm_provider_display"] = display_provider
+
+    if internal_provider == "azure":
+        config["azure_api_version"] = os.getenv("AZURE_API_VERSION") or config.get("azure_api_version")
+        config["azure_openai_api_key"] = os.getenv("AZURE_OPENAI_API_KEY") or config.get("azure_openai_api_key")
+        if not config["backend_url"]:
+            config["backend_url"] = os.getenv("AZURE_OPENAI_ENDPOINT")
+
+    # Debug output
+    console.print(f"\n[cyan]═══ Configuration Debug ═══[/cyan]")
+    console.print(f"[yellow]Provider (display): {display_provider}[/yellow]")
+    console.print(f"[yellow]Provider (internal): {internal_provider}[/yellow]")
+    console.print(f"[yellow]Backend URL: {config['backend_url']}[/yellow]")
+    console.print(f"[yellow]Quick model: {config['quick_think_llm']}[/yellow]")
+    console.print(f"[yellow]Deep model: {config['deep_think_llm']}[/yellow]")
+    console.print(f"[cyan]═══════════════════════════[/cyan]\n")
 
     # Initialize the graph
     graph = TradingAgentsGraph(
@@ -767,9 +886,27 @@ def run_analysis():
         def wrapper(*args, **kwargs):
             func(*args, **kwargs)
             timestamp, message_type, content = obj.messages[-1]
-            content = content.replace("\n", " ")  # Replace newlines with spaces
-            with open(log_file, "a") as f:
-                f.write(f"{timestamp} [{message_type}] {content}\n")
+            # Clean content for safe writing
+            content = str(content).replace("\n", " ")  # Replace newlines with spaces
+            # Replace problematic Unicode characters with ASCII equivalents
+            content = content.replace(chr(0x2011), '-')  # Non-breaking hyphen
+            content = content.replace(chr(0x2013), '-')  # En dash
+            content = content.replace(chr(0x2014), '-')  # Em dash
+            content = content.replace(chr(0x2018), "'")  # Left single quote
+            content = content.replace(chr(0x2019), "'")  # Right single quote
+            content = content.replace(chr(0x201c), '"')  # Left double quote
+            content = content.replace(chr(0x201d), '"')  # Right double quote
+            content = content.replace(chr(0x2022), '*')  # Bullet point
+            content = content.replace(chr(0x2026), '...')  # Ellipsis
+            content = content.replace(chr(0x223c), '~')  # Tilde operator (from error U+223C)
+            try:
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"{timestamp} [{message_type}] {content}\n")
+            except UnicodeEncodeError:
+                # Fallback: encode with error replacement
+                content_safe = content.encode('ascii', 'replace').decode('ascii')
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"{timestamp} [{message_type}] {content_safe}\n")
         return wrapper
     
     def save_tool_call_decorator(obj, func_name):
@@ -779,8 +916,19 @@ def run_analysis():
             func(*args, **kwargs)
             timestamp, tool_name, args = obj.tool_calls[-1]
             args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-            with open(log_file, "a") as f:
-                f.write(f"{timestamp} [Tool Call] {tool_name}({args_str})\n")
+            # Clean for safe writing - replace Unicode characters
+            args_str = str(args_str).replace(chr(0x2011), '-').replace(chr(0x2013), '-').replace(chr(0x2014), '-')
+            args_str = args_str.replace(chr(0x2018), "'").replace(chr(0x2019), "'")
+            args_str = args_str.replace(chr(0x201c), '"').replace(chr(0x201d), '"')
+            args_str = args_str.replace(chr(0x2022), '*').replace(chr(0x2026), '...')
+            args_str = args_str.replace(chr(0x223c), '~')  # Tilde operator
+            try:
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"{timestamp} [Tool Call] {tool_name}({args_str})\n")
+            except UnicodeEncodeError:
+                args_str_safe = args_str.encode('ascii', 'replace').decode('ascii')
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"{timestamp} [Tool Call] {tool_name}({args_str_safe})\n")
         return wrapper
 
     def save_report_section_decorator(obj, func_name):
@@ -792,8 +940,14 @@ def run_analysis():
                 content = obj.report_sections[section_name]
                 if content:
                     file_name = f"{section_name}.md"
-                    with open(report_dir / file_name, "w") as f:
-                        f.write(content)
+                    try:
+                        with open(report_dir / file_name, "w", encoding="utf-8") as f:
+                            f.write(content)
+                    except UnicodeEncodeError:
+                        # Fallback: write with error replacement
+                        content_safe = str(content).encode('utf-8', 'replace').decode('utf-8')
+                        with open(report_dir / file_name, "w", encoding="utf-8") as f:
+                            f.write(content_safe)
         return wrapper
 
     message_buffer.add_message = save_message_decorator(message_buffer, "add_message")

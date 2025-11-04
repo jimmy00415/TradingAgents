@@ -6,7 +6,7 @@ import json
 from datetime import date
 from typing import Dict, Any, Tuple, List, Optional
 
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -72,9 +72,39 @@ class TradingAgentsGraph:
         )
 
         # Initialize LLMs
-        if self.config["llm_provider"].lower() == "openai" or self.config["llm_provider"] == "ollama" or self.config["llm_provider"] == "openrouter":
-            self.deep_thinking_llm = ChatOpenAI(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
-            self.quick_thinking_llm = ChatOpenAI(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])
+        provider = self.config["llm_provider"].lower()
+
+        if provider in {"openai", "ollama", "openrouter"}:
+            self.deep_thinking_llm = ChatOpenAI(
+                model=self.config["deep_think_llm"],
+                base_url=self.config["backend_url"],
+            )
+            self.quick_thinking_llm = ChatOpenAI(
+                model=self.config["quick_think_llm"],
+                base_url=self.config["backend_url"],
+            )
+        elif provider == "azure":
+            azure_endpoint = self.config.get("backend_url") or os.getenv("AZURE_OPENAI_ENDPOINT")
+            azure_api_version = self.config.get("azure_api_version") or os.getenv("AZURE_API_VERSION")
+            azure_api_key = self.config.get("azure_openai_api_key") or os.getenv("AZURE_OPENAI_API_KEY")
+
+            if not azure_endpoint or not azure_api_version or not azure_api_key:
+                raise ValueError(
+                    "Azure OpenAI configuration requires endpoint, API version, and API key."
+                )
+
+            self.deep_thinking_llm = AzureChatOpenAI(
+                azure_deployment=self.config["deep_think_llm"],
+                azure_endpoint=azure_endpoint,
+                api_key=azure_api_key,
+                openai_api_version=azure_api_version,
+            )
+            self.quick_thinking_llm = AzureChatOpenAI(
+                azure_deployment=self.config["quick_think_llm"],
+                azure_endpoint=azure_endpoint,
+                api_key=azure_api_key,
+                openai_api_version=azure_api_version,
+            )
         elif self.config["llm_provider"].lower() == "anthropic":
             self.deep_thinking_llm = ChatAnthropic(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
             self.quick_thinking_llm = ChatAnthropic(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])

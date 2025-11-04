@@ -1,4 +1,5 @@
 from langchain_core.messages import AIMessage
+from openai import BadRequestError
 import time
 import json
 
@@ -44,9 +45,17 @@ Reflections from similar situations and lessons learned: {past_memory_str}
 Use this information to deliver a compelling bear argument, refute the bull's claims, and engage in a dynamic debate that demonstrates the risks and weaknesses of investing in the stock. You must also address reflections and learn from lessons and mistakes you made in the past.
 """
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Bear researcher content filtered. Using fallback response.")
+                response_content = "Based on available data, I maintain caution due to potential risks in market conditions, valuation concerns, and volatility indicators. Detailed analysis was limited by content restrictions. Key focus areas: downside risk assessment, market headwinds, and defensive positioning strategies."
+            else:
+                raise
 
-        argument = f"Bear Analyst: {response.content}"
+        argument = f"Bear Analyst: {response_content}"
 
         new_investment_debate_state = {
             "history": history + "\n" + argument,

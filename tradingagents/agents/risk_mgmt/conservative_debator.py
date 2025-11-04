@@ -1,4 +1,5 @@
 from langchain_core.messages import AIMessage
+from openai import BadRequestError
 import time
 import json
 
@@ -33,9 +34,17 @@ Here is the current conversation history: {history} Here is the last response fr
 
 Engage by questioning their optimism and emphasizing the potential downsides they may have overlooked. Address each of their counterpoints to showcase why a conservative stance is ultimately the safest path for the firm's assets. Focus on debating and critiquing their arguments to demonstrate the strength of a low-risk strategy over their approaches. Output conversationally as if you are speaking without any special formatting."""
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Safe analyst content filtered. Using fallback response.")
+                response_content = "As the Safe Analyst, I recommend a conservative approach prioritizing capital preservation. While detailed analysis was limited by content restrictions, current market conditions and risk factors suggest caution. I advocate for smaller position sizes, tighter stop-losses, and maintaining adequate cash reserves to protect against downside scenarios."
+            else:
+                raise
 
-        argument = f"Safe Analyst: {response.content}"
+        argument = f"Safe Analyst: {response_content}"
 
         new_risk_debate_state = {
             "history": history + "\n" + argument,

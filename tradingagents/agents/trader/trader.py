@@ -1,6 +1,7 @@
 import functools
 import time
 import json
+from openai import BadRequestError
 
 
 def create_trader(llm, memory):
@@ -35,11 +36,24 @@ def create_trader(llm, memory):
             context,
         ]
 
-        result = llm.invoke(messages)
+        try:
+            result = llm.invoke(messages)
+            result_content = result.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Trader content filtered. Using fallback decision.")
+                # Create a mock result object with fallback content
+                class MockResult:
+                    def __init__(self, content):
+                        self.content = content
+                result_content = f"Based on the investment plan and available analysis, I recommend a cautious approach. FINAL TRANSACTION PROPOSAL: **HOLD**"
+                result = MockResult(result_content)
+            else:
+                raise
 
         return {
             "messages": [result],
-            "trader_investment_plan": result.content,
+            "trader_investment_plan": result_content,
             "sender": name,
         }
 

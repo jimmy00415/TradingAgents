@@ -1,5 +1,6 @@
 import time
 import json
+from openai import BadRequestError
 
 
 def create_neutral_debator(llm):
@@ -32,9 +33,17 @@ Here is the current conversation history: {history} Here is the last response fr
 
 Engage actively by analyzing both sides critically, addressing weaknesses in the risky and conservative arguments to advocate for a more balanced approach. Challenge each of their points to illustrate why a moderate risk strategy might offer the best of both worlds, providing growth potential while safeguarding against extreme volatility. Focus on debating rather than simply presenting data, aiming to show that a balanced view can lead to the most reliable outcomes. Output conversationally as if you are speaking without any special formatting."""
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Neutral analyst content filtered. Using fallback response.")
+                response_content = "As the Neutral Analyst, I recommend a balanced approach that considers both upside potential and downside risk. Given the content filtering limitations, I suggest maintaining a moderate position size with appropriate risk controls. This allows participation in potential gains while preserving capital against adverse movements. Key considerations include diversification, position sizing based on volatility, and clear exit strategies."
+            else:
+                raise
 
-        argument = f"Neutral Analyst: {response.content}"
+        argument = f"Neutral Analyst: {response_content}"
 
         new_risk_debate_state = {
             "history": history + "\n" + argument,

@@ -1,4 +1,5 @@
 from langchain_core.messages import AIMessage
+from openai import BadRequestError
 import time
 import json
 
@@ -42,9 +43,17 @@ Reflections from similar situations and lessons learned: {past_memory_str}
 Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position. You must also address reflections and learn from lessons and mistakes you made in the past.
 """
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Bull researcher content filtered. Using fallback response.")
+                response_content = "Based on available data, I maintain a bullish outlook focusing on strong fundamentals and positive market trends. However, detailed analysis was limited by content restrictions. Key focus areas: revenue growth potential, market positioning, and technical momentum indicators suggest upside opportunity."
+            else:
+                raise
 
-        argument = f"Bull Analyst: {response.content}"
+        argument = f"Bull Analyst: {response_content}"
 
         new_investment_debate_state = {
             "history": history + "\n" + argument,

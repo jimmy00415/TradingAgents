@@ -5,16 +5,32 @@ from openai import OpenAI
 
 class FinancialSituationMemory:
     def __init__(self, name, config):
-        if config["backend_url"] == "http://localhost:11434/v1":
+        # Check if using HKBU GenAI (which has different embeddings endpoint structure)
+        backend_url = config.get("backend_url", "")
+        self.is_hkbu = "hkbu" in backend_url.lower()
+        
+        if self.is_hkbu:
+            # HKBU uses different embeddings endpoint structure - disable memory for now
+            self.embedding = None
+            self.client = None
+            self.chroma_client = None
+            self.situation_collection = None
+            print(f"[INFO] Memory disabled for HKBU GenAI (embeddings endpoint not compatible)")
+        elif config["backend_url"] == "http://localhost:11434/v1":
             self.embedding = "nomic-embed-text"
+            self.client = OpenAI(base_url=config["backend_url"])
+            self.chroma_client = chromadb.Client(Settings(allow_reset=True))
+            self.situation_collection = self.chroma_client.create_collection(name=name)
         else:
             self.embedding = "text-embedding-3-small"
-        self.client = OpenAI(base_url=config["backend_url"])
-        self.chroma_client = chromadb.Client(Settings(allow_reset=True))
-        self.situation_collection = self.chroma_client.create_collection(name=name)
+            self.client = OpenAI(base_url=config["backend_url"])
+            self.chroma_client = chromadb.Client(Settings(allow_reset=True))
+            self.situation_collection = self.chroma_client.create_collection(name=name)
 
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
+        if self.is_hkbu:
+            return None  # Skip embeddings for HKBU
         
         response = self.client.embeddings.create(
             model=self.embedding, input=text
@@ -23,6 +39,8 @@ class FinancialSituationMemory:
 
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""
+        if self.is_hkbu:
+            return  # Skip memory operations for HKBU
 
         situations = []
         advice = []
@@ -46,6 +64,9 @@ class FinancialSituationMemory:
 
     def get_memories(self, current_situation, n_matches=1):
         """Find matching recommendations using OpenAI embeddings"""
+        if self.is_hkbu:
+            return []  # Return empty list for HKBU
+            
         query_embedding = self.get_embedding(current_situation)
 
         results = self.situation_collection.query(

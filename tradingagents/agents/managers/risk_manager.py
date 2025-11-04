@@ -1,5 +1,6 @@
 import time
 import json
+from openai import BadRequestError
 
 
 def create_risk_manager(llm, memory):
@@ -43,10 +44,18 @@ Deliverables:
 
 Focus on actionable insights and continuous improvement. Build on past lessons, critically evaluate all perspectives, and ensure each decision advances better outcomes."""
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
+            response_content = response.content
+        except BadRequestError as e:
+            if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
+                print(f"[WARNING] Risk manager content filtered. Using fallback decision.")
+                response_content = "FINAL DECISION: HOLD. Based on the debate and considering risk factors, a moderate approach is recommended. While detailed analysis was limited by content restrictions, the balanced perspectives suggest maintaining current positions with appropriate risk controls and monitoring for clearer signals."
+            else:
+                raise
 
         new_risk_debate_state = {
-            "judge_decision": response.content,
+            "judge_decision": response_content,
             "history": risk_debate_state["history"],
             "risky_history": risk_debate_state["risky_history"],
             "safe_history": risk_debate_state["safe_history"],

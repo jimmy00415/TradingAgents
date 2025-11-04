@@ -9,10 +9,12 @@ DEFAULT_CONFIG = {
         "dataflows/data_cache",
     ),
     # LLM settings
-    "llm_provider": "openai",
-    "deep_think_llm": "o4-mini",
-    "quick_think_llm": "gpt-4o-mini",
-    "backend_url": "https://api.openai.com/v1",
+    "llm_provider": "azure",
+    "deep_think_llm": "gpt-4.1",
+    "quick_think_llm": "gpt-4.1-mini",
+    "backend_url": "https://genai.hkbu.edu.hk/api/v0/rest",
+    "azure_api_version": os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
+    "azure_openai_api_key": os.getenv("AZURE_OPENAI_API_KEY"),
     # Debate and discussion settings
     "max_debate_rounds": 1,
     "max_risk_discuss_rounds": 1,
