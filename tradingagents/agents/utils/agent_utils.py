@@ -21,6 +21,10 @@ from tradingagents.agents.utils.news_data_tools import (
     get_economic_calendar,
     get_upcoming_earnings
 )
+from tradingagents.agents.utils.finnhub_tools import (
+    get_earnings_surprises,
+    get_institutional_ownership
+)
 
 def create_msg_delete():
     def delete_messages(state):

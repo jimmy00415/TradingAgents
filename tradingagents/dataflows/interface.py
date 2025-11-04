@@ -15,6 +15,13 @@ from .alpha_vantage import (
     get_insider_transactions as get_alpha_vantage_insider_transactions,
     get_news as get_alpha_vantage_news
 )
+from .finnhub import (
+    get_company_news_finnhub,
+    get_insider_sentiment_finnhub,
+    get_insider_transactions_finnhub,
+    get_earnings_surprises_finnhub,
+    get_institutional_ownership_finnhub
+)
 from .alpha_vantage_common import AlphaVantageRateLimitError
 
 # Configuration and routing logic
@@ -98,6 +105,7 @@ VENDOR_METHODS = {
     # news_data
     "get_news": {
         "alpha_vantage": get_alpha_vantage_news,
+        "finnhub": get_company_news_finnhub,
         "openai": get_stock_news_openai,
         "google": get_google_news,
         "local": [get_finnhub_news, get_reddit_company_news, get_google_news],
@@ -107,9 +115,11 @@ VENDOR_METHODS = {
         "local": get_reddit_global_news
     },
     "get_insider_sentiment": {
+        "finnhub": get_insider_sentiment_finnhub,
         "local": get_finnhub_company_insider_sentiment
     },
     "get_insider_transactions": {
+        "finnhub": get_insider_transactions_finnhub,
         "alpha_vantage": get_alpha_vantage_insider_transactions,
         "yfinance": get_yfinance_insider_transactions,
         "local": get_finnhub_company_insider_transactions,

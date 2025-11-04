@@ -8,6 +8,8 @@ from tradingagents.agents.utils.agent_utils import (
     get_income_statement,
     get_insider_transactions,
     get_insider_sentiment,
+    get_earnings_surprises,
+    get_institutional_ownership,
 )
 
 
@@ -24,11 +26,23 @@ def create_fundamentals_analyst(llm):
             get_income_statement,
             get_insider_transactions,
             get_insider_sentiment,
+            get_earnings_surprises,
+            get_institutional_ownership,
         ]
 
         system_message = (
             "You are a researcher tasked with analyzing fundamental information over the past week about a company. Please write a comprehensive report of the company's fundamental information such as financial documents, company profile, basic company financials, company financial history, insider sentiment and insider transactions to gain a full view of the company's fundamental information to inform traders. "
-            "**CRITICAL: Always call get_insider_transactions and get_insider_sentiment to analyze insider activity.** Insider buying is often a strong bullish signal, while heavy insider selling may indicate concerns. Provide detailed analysis of insider patterns, transaction sizes, and what they may indicate about company prospects. "
+            "**CRITICAL FINNHUB TOOLS - Always call these for institutional-grade insights:**\n"
+            "1. get_insider_transactions() - Individual insider trades (names, amounts, buy/sell)\n"
+            "2. get_insider_sentiment() - Monthly aggregated insider activity trends\n"
+            "3. get_earnings_surprises() - Historical beats/misses vs analyst estimates\n"
+            "4. get_institutional_ownership() - Smart money positioning and recent changes\n\n"
+            "**Analysis Framework:**\n"
+            "- Insider buying is often a strong bullish signal (they have non-public info)\n"
+            "- Heavy insider selling may indicate concerns about valuation or prospects\n"
+            "- Consistent earnings beats show strong execution; misses reveal challenges\n"
+            "- Institutional buying (smart money) validates investment thesis\n"
+            "- Look for patterns: Are insiders accumulating? Are institutions adding?\n\n"
             "Make sure to include as much detail as possible. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
             + " Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read.",
         )
