@@ -391,31 +391,51 @@ def get_reddit_global_news(
     total_iterations = (curr_date_dt - curr_iter_date).days + 1
     pbar = tqdm(desc=f"Getting Global News on {curr_date}", total=total_iterations)
 
-    while curr_iter_date <= curr_date_dt:
-        curr_date_str = curr_iter_date.strftime("%Y-%m-%d")
-        fetch_result = fetch_top_from_category(
-            "global_news",
-            curr_date_str,
-            limit,
-            data_path=os.path.join(DATA_DIR, "reddit_data"),
-        )
-        posts.extend(fetch_result)
-        curr_iter_date += relativedelta(days=1)
-        pbar.update(1)
+    try:
+        reddit_data_path = os.path.join(DATA_DIR, "reddit_data")
+        
+        # Check if the reddit data directory exists
+        if not os.path.exists(reddit_data_path):
+            print(f"[INFO] Reddit data directory not found: {reddit_data_path}")
+            print(f"[INFO] Skipping local reddit global news (data not available)")
+            pbar.close()
+            return ""
+        
+        while curr_iter_date <= curr_date_dt:
+            curr_date_str = curr_iter_date.strftime("%Y-%m-%d")
+            fetch_result = fetch_top_from_category(
+                "global_news",
+                curr_date_str,
+                limit,
+                data_path=reddit_data_path,
+            )
+            posts.extend(fetch_result)
+            curr_iter_date += relativedelta(days=1)
+            pbar.update(1)
 
-    pbar.close()
+        pbar.close()
 
-    if len(posts) == 0:
+        if len(posts) == 0:
+            return ""
+
+        news_str = ""
+        for post in posts:
+            if post["content"] == "":
+                news_str += f"### {post['title']}\n\n"
+            else:
+                news_str += f"### {post['title']}\n\n{post['content']}\n\n"
+
+        return f"## Global News Reddit, from {before} to {curr_date}:\n{news_str}"
+    
+    except (FileNotFoundError, OSError) as e:
+        # Handle Windows path issues and missing data directories gracefully
+        print(f"[INFO] Local reddit data not accessible: {type(e).__name__}")
+        pbar.close()
         return ""
-
-    news_str = ""
-    for post in posts:
-        if post["content"] == "":
-            news_str += f"### {post['title']}\n\n"
-        else:
-            news_str += f"### {post['title']}\n\n{post['content']}\n\n"
-
-    return f"## Global News Reddit, from {before} to {curr_date}:\n{news_str}"
+    except Exception as e:
+        print(f"[WARNING] Unexpected error fetching local reddit news: {e}")
+        pbar.close()
+        return ""
 
 
 def get_reddit_company_news(
