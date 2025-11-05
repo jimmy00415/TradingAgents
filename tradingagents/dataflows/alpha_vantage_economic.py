@@ -4,7 +4,7 @@ Provides macroeconomic event tracking for context-aware trading analysis
 """
 from typing import Annotated
 from datetime import datetime, timedelta
-from .alpha_vantage_common import make_alpha_vantage_request
+from .alpha_vantage_common import _make_api_request
 
 
 def get_economic_calendar(
@@ -32,9 +32,7 @@ def get_economic_calendar(
         Formatted string with upcoming economic events and their importance
     """
     # Build parameters
-    params = {
-        "function": "ECONOMIC_CALENDAR"
-    }
+    params = {}
     
     # Add horizon if no specific dates provided
     if not start_date and not end_date:
@@ -47,7 +45,7 @@ def get_economic_calendar(
             params["to"] = end_date
     
     try:
-        data = make_alpha_vantage_request(params)
+        data = _make_api_request("ECONOMIC_CALENDAR", params)
         
         # Check if we got valid data
         if not data or "data" not in data:
@@ -142,13 +140,12 @@ def get_upcoming_earnings(
     Note: This uses the earnings calendar function from Alpha Vantage.
     """
     params = {
-        "function": "EARNINGS_CALENDAR",
         "symbol": ticker.upper(),
         "horizon": horizon
     }
     
     try:
-        data = make_alpha_vantage_request(params)
+        data = _make_api_request("EARNINGS_CALENDAR", params)
         
         if not data:
             return f"Earnings calendar data not available for {ticker}."
