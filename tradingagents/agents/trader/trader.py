@@ -2,6 +2,7 @@ import functools
 import time
 import json
 from openai import BadRequestError
+from langchain_core.messages import AIMessage
 
 
 def create_trader(llm, memory):
@@ -42,12 +43,9 @@ def create_trader(llm, memory):
         except BadRequestError as e:
             if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
                 print(f"[WARNING] Trader content filtered. Using fallback decision.")
-                # Create a mock result object with fallback content
-                class MockResult:
-                    def __init__(self, content):
-                        self.content = content
+                # Create a proper AIMessage for LangChain compatibility
                 result_content = f"Based on the investment plan and available analysis, I recommend a cautious approach. FINAL TRANSACTION PROPOSAL: **HOLD**"
-                result = MockResult(result_content)
+                result = AIMessage(content=result_content)
             else:
                 raise
 
