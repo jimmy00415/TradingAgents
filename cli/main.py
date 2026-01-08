@@ -11,6 +11,7 @@ from rich.spinner import Spinner
 from rich.live import Live
 from rich.columns import Columns
 from dotenv import load_dotenv
+from openai import BadRequestError
 
 # Load environment variables from .env file
 load_dotenv()

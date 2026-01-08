@@ -14,7 +14,7 @@ def get_stock_news_openai(query, start_date, end_date):
                 "content": [
                     {
                         "type": "input_text",
-                        "text": f"Can you search Social Media for {query} from {start_date} to {end_date}? Make sure you only get the data posted during that period.",
+                        "text": f"Please search for public sentiment and discussions regarding {query} from {start_date} to {end_date}. Ensure the information is from this specific timeframe.",
                     }
                 ],
             }
