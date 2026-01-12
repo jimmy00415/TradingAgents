@@ -16,8 +16,8 @@
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=de">Deutsch</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=es">Español</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=fr">français</a> | 
-  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ja">日本語</a> | 
-  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ko">한국어</a> | 
+  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ja">日本�?/a> | 
+  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ko">한국�?/a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=pt">Português</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ru">Русский</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=zh">中文</a>
@@ -43,7 +43,7 @@
 
 <div align="center">
 
-🚀 [TradingAgents](#tradingagents-framework) | ⚡ [Installation & CLI](#installation-and-cli) | 🎬 [Demo](https://www.youtube.com/watch?v=90gr5lwjIho) | 📦 [Package Usage](#tradingagents-package) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
+🚀 [TradingAgents](#tradingagents-framework) | �?[Installation & CLI](#installation-and-cli) | 🎬 [Demo](https://www.youtube.com/watch?v=90gr5lwjIho) | 📦 [Package Usage](#tradingagents-package) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
 
 </div>
 
@@ -114,20 +114,33 @@ pip install -r requirements.txt
 
 ### Required APIs
 
-You will need the OpenAI API for all the agents, and [Alpha Vantage API](https://www.alphavantage.co/support/#api-key) for fundamental and news data (default configuration).
+TradingAgents requires API keys for data sources and LLM services:
 
-```bash
-export OPENAI_API_KEY=$YOUR_OPENAI_API_KEY
-export ALPHA_VANTAGE_API_KEY=$YOUR_ALPHA_VANTAGE_API_KEY
-```
+- **Alpha Vantage API** (Required): For fundamental and news data
+- **Azure OpenAI / HKBU GenAI API** (Required): For LLM agents
+- **Finnhub API** (Optional): For enhanced insider data
 
-Alternatively, you can create a `.env` file in the project root with your API keys (see `.env.example` for reference):
-```bash
-cp .env.example .env
-# Edit .env with your actual API keys
-```
+#### Quick Setup
 
-**Note:** We are happy to partner with Alpha Vantage to provide robust API support for TradingAgents. You can get a free AlphaVantage API [here](https://www.alphavantage.co/support/#api-key), TradingAgents-sourced requests also have increased rate limits to 60 requests per minute with no daily limits. Typically the quota is sufficient for performing complex tasks with TradingAgents thanks to Alpha Vantage’s open-source support program. If you prefer to use OpenAI for these data sources instead, you can modify the data vendor settings in `tradingagents/default_config.py`.
+1. Copy the example environment file:
+   ```ash
+   cp .env.example .env
+   ```
+
+2. Edit .env and add your API keys:
+   ```ash
+   ALPHA_VANTAGE_API_KEY=your_actual_alpha_vantage_key
+   AZURE_OPENAI_API_KEY=your_actual_azure_openai_key
+   ```
+
+3. Get your API keys:
+   - **Alpha Vantage**: [alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key) (Free, instant)
+   - **Azure OpenAI/HKBU GenAI**: Contact your institution or use [OpenAI API](https://platform.openai.com/api-keys)
+   - **Finnhub** (Optional): [finnhub.io/register](https://finnhub.io/register) (Free tier available)
+
+ **For detailed setup instructions, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**
+
+**Note:** TradingAgents users get increased Alpha Vantage rate limits (60 requests/min, no daily limits) thanks to their open-source support program.
 
 ### CLI Usage
 
@@ -223,3 +236,4 @@ Please reference our work if you find *TradingAgents* provides you with some hel
       url={https://arxiv.org/abs/2412.20138}, 
 }
 ```
+
