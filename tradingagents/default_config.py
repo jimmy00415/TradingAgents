@@ -10,8 +10,8 @@ DEFAULT_CONFIG = {
     ),
     # LLM settings
     "llm_provider": "azure",
-    "deep_think_llm": "gpt-4.1",
-    "quick_think_llm": "gpt-4.1-mini",
+    "deep_think_llm": "gpt-5",
+    "quick_think_llm": "gpt-5",
     "backend_url": "https://genai.hkbu.edu.hk/api/v0/rest",
     "azure_api_version": os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
     "azure_openai_api_key": os.getenv("AZURE_OPENAI_API_KEY"),
