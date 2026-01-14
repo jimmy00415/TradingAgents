@@ -168,8 +168,10 @@ def route_to_vendor(method: str, *args, **kwargs):
     # Check if local sources should be disabled (cloud deployment optimization)
     disable_local = os.getenv("DISABLE_LOCAL_SOURCES", "false").lower() == "true"
     if disable_local:
+        # Filter local from BOTH available vendors AND primary vendors
         all_available_vendors = [v for v in all_available_vendors if v != "local"]
-        print(f"[INFO] DISABLE_LOCAL_SOURCES=true: Skipping 'local' vendor for {method}")
+        primary_vendors = [v for v in primary_vendors if v != "local"]
+        print(f"[INFO] DISABLE_LOCAL_SOURCES=true: Filtered 'local' vendor from {method}")
     
     # Create fallback vendor list: primary vendors first, then remaining vendors as fallbacks
     fallback_vendors = primary_vendors.copy()
@@ -189,6 +191,11 @@ def route_to_vendor(method: str, *args, **kwargs):
     successful_vendor = None
 
     for vendor in fallback_vendors:
+        # CRITICAL: Double-check local sources are disabled (defense in depth)
+        if vendor == "local" and disable_local:
+            print(f"[INFO] Skipping 'local' vendor '{vendor}' for {method} (DISABLE_LOCAL_SOURCES=true)")
+            continue
+        
         if vendor not in VENDOR_METHODS[method]:
             if vendor in primary_vendors:
                 print(f"INFO: Vendor '{vendor}' not supported for method '{method}', falling back to next vendor")

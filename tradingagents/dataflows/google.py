@@ -10,10 +10,18 @@ def get_google_news(
     look_back_days: Annotated[int, "how many days to look back"],
 ) -> str:
     """Get Google News with (query, curr_date, look_back_days) parameters."""
-    query = str(query).replace(" ", "+")  # Ensure query is string
+    # Type safety: ensure parameters are correct types
+    query = str(query).replace(" ", "+")
+    curr_date = str(curr_date)  # Ensure curr_date is string
+    look_back_days = int(look_back_days)  # Ensure int
 
-    start_date = datetime.strptime(curr_date, "%Y-%m-%d")
-    before = start_date - relativedelta(days=int(look_back_days))  # Ensure int
+    try:
+        start_date = datetime.strptime(curr_date, "%Y-%m-%d")
+    except ValueError as e:
+        print(f"[ERROR] Invalid date format for curr_date='{curr_date}': {e}")
+        return ""
+    
+    before = start_date - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
     try:

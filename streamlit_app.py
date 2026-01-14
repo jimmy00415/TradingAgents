@@ -43,10 +43,13 @@ os.environ['FINNHUB_API_KEY'] = FINNHUB_KEY
 # Detect deployment environment and optimize configuration
 IS_CLOUD = os.getenv("STREAMLIT_RUNTIME_ENV") == "cloud" or "STREAMLIT_SHARING" in os.environ
 
-# Cloud-optimized: Configure environment BEFORE importing heavy modules
-if IS_CLOUD:
-    # Disable local fallbacks completely to save memory
+# CRITICAL: Disable local sources (Reddit) by default in ALL environments
+# Local Reddit data files don't exist in most deployments and cause hangs
+if os.getenv("DISABLE_LOCAL_SOURCES") is None:
     os.environ["DISABLE_LOCAL_SOURCES"] = "true"
+    print("[INFO] DISABLE_LOCAL_SOURCES auto-enabled (prevents Reddit hangs)")
+
+if IS_CLOUD:
     print("[INFO] Running in CLOUD mode - lazy loading enabled")
 else:
     print("[INFO] Running in LOCAL mode")
