@@ -108,12 +108,20 @@ with st.sidebar:
     # Model Settings
     st.subheader("🤖 AI Model Settings")
     
-    # Azure OpenAI Deployment Names (these are your actual deployment names in Azure)
+    # Azure Foundry: Direct access to OpenAI models
     llm_model = st.selectbox(
-        "LLM Model (Azure Deployment)",
-        options=["gpt-4o", "gpt-4o-mini", "gpt-35-turbo", "gpt-4"],
+        "LLM Model",
+        options=[
+            "gpt-4o",           # GPT-4 Optimized (recommended)
+            "gpt-4o-mini",      # Fast & cost-effective
+            "gpt-4-turbo",      # GPT-4 Turbo
+            "gpt-4",            # GPT-4 base
+            "gpt-3.5-turbo",    # Fast legacy model
+            "o1-preview",       # Reasoning model
+            "o1-mini",          # Compact reasoning
+        ],
         index=0,
-        help="Select your Azure OpenAI deployment name. Make sure this deployment exists in your Azure OpenAI resource."
+        help="Select OpenAI model (Azure Foundry provides direct access to all OpenAI models)"
     )
     
     debate_rounds = st.slider(

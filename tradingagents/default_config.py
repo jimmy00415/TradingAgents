@@ -10,8 +10,8 @@ DEFAULT_CONFIG = {
     ),
     # LLM settings
     "llm_provider": "azure",
-    "deep_think_llm": "gpt-4o",  # Azure deployment name
-    "quick_think_llm": "gpt-4o",  # Azure deployment name
+    "deep_think_llm": "gpt-4o",  # Standard OpenAI model name (Foundry access)
+    "quick_think_llm": "gpt-4o",  # Standard OpenAI model name (Foundry access)
     "backend_url": os.getenv("AZURE_OPENAI_ENDPOINT", "https://jimmy00415.openai.azure.com/"),
     "azure_api_version": os.getenv("AZURE_API_VERSION", "2024-05-01-preview"),
     "azure_openai_api_key": os.getenv("AZURE_OPENAI_API_KEY"),
