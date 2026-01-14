@@ -95,7 +95,7 @@ def check_reddit_functions():
     print(f"   Result length: {len(result2)} (should be 0 if disabled)")
 
 if __name__ == "__main__":
-    print("🔍 TradingAgents Configuration Diagnostics")
+    print("TradingAgents Configuration Diagnostics")
     print(f"Running at: {os.getcwd()}")
     
     show_config()

@@ -1,6 +1,12 @@
 from typing import Annotated
 import os
 
+# CRITICAL: Auto-enable local source blocking if not explicitly set
+# This prevents Reddit data hangs in all environments (cloud and local)
+if os.getenv("DISABLE_LOCAL_SOURCES") is None:
+    os.environ["DISABLE_LOCAL_SOURCES"] = "true"
+    print("[INIT] Auto-enabled DISABLE_LOCAL_SOURCES=true (prevents Reddit hangs)")
+
 # Import from vendor-specific modules
 from .local import get_YFin_data, get_finnhub_news, get_finnhub_company_insider_sentiment, get_finnhub_company_insider_transactions, get_simfin_balance_sheet, get_simfin_cashflow, get_simfin_income_statements, get_reddit_global_news, get_reddit_company_news
 from .y_finance import get_YFin_data_online, get_stock_stats_indicators_window, get_fundamentals as get_yfinance_fundamentals, get_balance_sheet as get_yfinance_balance_sheet, get_cashflow as get_yfinance_cashflow, get_income_statement as get_yfinance_income_statement, get_insider_transactions as get_yfinance_insider_transactions
@@ -81,7 +87,7 @@ VENDOR_METHODS = {
     "get_indicators": {
         "alpha_vantage": get_alpha_vantage_indicator,
         "yfinance": get_stock_stats_indicators_window,
-        "local": get_stock_stats_indicators_window
+        # Removed 'local' - it was just calling yfinance anyway (no local data)
     },
     # fundamental_data
     "get_fundamentals": {
@@ -119,13 +125,13 @@ VENDOR_METHODS = {
     },
     "get_insider_sentiment": {
         "finnhub": get_insider_sentiment_finnhub,
-        "local": get_finnhub_company_insider_sentiment
+        # Removed 'local' - it was just calling finnhub anyway (redundant)
     },
     "get_insider_transactions": {
         "finnhub": get_insider_transactions_finnhub,
         "alpha_vantage": get_alpha_vantage_insider_transactions,
         "yfinance": get_yfinance_insider_transactions,
-        "local": get_finnhub_company_insider_transactions,
+        # Removed 'local' - it was just calling finnhub anyway (redundant)
     },
 }
 
