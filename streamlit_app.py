@@ -14,11 +14,13 @@ import json
 # Load environment variables
 load_dotenv()
 
-# HKBU GenAI Platform - Azure OpenAI Configuration
-os.environ['OPENAI_API_KEY'] = '4821b42b-7279-4a5a-a715-35e48c4426fa'
-os.environ['AZURE_OPENAI_API_KEY'] = '4821b42b-7279-4a5a-a715-35e48c4426fa'
-os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://genai.hkbu.edu.hk/api/v0/rest'
+# Azure OpenAI Configuration (Personal Account)
+# For local: set in .env file | For Streamlit Cloud: set in Secrets
+AZURE_KEY = st.secrets.get("AZURE_OPENAI_API_KEY", os.getenv("AZURE_OPENAI_API_KEY", ""))
+os.environ['AZURE_OPENAI_API_KEY'] = AZURE_KEY
+os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://jimmy00415.openai.azure.com/'
 os.environ['AZURE_API_VERSION'] = '2024-05-01-preview'
+os.environ['OPENAI_API_KEY'] = AZURE_KEY
 
 # Data source API keys (keep these)
 os.environ['ALPHA_VANTAGE_API_KEY'] = '5GK3NBVL9YVJI3QV'
@@ -184,11 +186,11 @@ with col1:
                 config["max_debate_rounds"] = debate_rounds
                 config["max_risk_discuss_rounds"] = risk_rounds
                 
-                # Configure Azure OpenAI for HKBU platform
+                # Configure Azure OpenAI (Personal Account)
                 config["llm_provider"] = "azure"
-                config["backend_url"] = "https://genai.hkbu.edu.hk/api/v0/rest"
+                config["backend_url"] = "https://jimmy00415.openai.azure.com/"
                 config["azure_api_version"] = "2024-05-01-preview"
-                config["azure_openai_api_key"] = "4821b42b-7279-4a5a-a715-35e48c4426fa"
+                config["azure_openai_api_key"] = AZURE_KEY
                 
                 status_text.text("🤖 Initializing TradingAgents...")
                 progress_bar.progress(20)
