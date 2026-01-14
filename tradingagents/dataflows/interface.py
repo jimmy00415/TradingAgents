@@ -4,7 +4,7 @@ import os
 # Import from vendor-specific modules
 from .local import get_YFin_data, get_finnhub_news, get_finnhub_company_insider_sentiment, get_finnhub_company_insider_transactions, get_simfin_balance_sheet, get_simfin_cashflow, get_simfin_income_statements, get_reddit_global_news, get_reddit_company_news
 from .y_finance import get_YFin_data_online, get_stock_stats_indicators_window, get_fundamentals as get_yfinance_fundamentals, get_balance_sheet as get_yfinance_balance_sheet, get_cashflow as get_yfinance_cashflow, get_income_statement as get_yfinance_income_statement, get_insider_transactions as get_yfinance_insider_transactions
-from .google import get_google_news
+from .google import get_google_news, get_google_company_news
 from .openai import get_stock_news_openai, get_global_news_openai, get_fundamentals_openai
 from .alpha_vantage import (
     get_stock as get_alpha_vantage_stock,
@@ -109,8 +109,8 @@ VENDOR_METHODS = {
         "alpha_vantage": get_alpha_vantage_news,
         "finnhub": get_company_news_finnhub,
         "openai": get_stock_news_openai,
-        "google": get_google_news,
-        "local": [get_finnhub_news, get_reddit_company_news, get_google_news],
+        "google": get_google_company_news,  # Use adapter for (ticker, start, end) signature
+        "local": [get_finnhub_news, get_reddit_company_news],  # Removed get_google_news (wrong signature)
     },
     "get_global_news": {
         "openai": get_global_news_openai,
@@ -169,6 +169,7 @@ def route_to_vendor(method: str, *args, **kwargs):
     disable_local = os.getenv("DISABLE_LOCAL_SOURCES", "false").lower() == "true"
     if disable_local:
         all_available_vendors = [v for v in all_available_vendors if v != "local"]
+        print(f"[INFO] DISABLE_LOCAL_SOURCES=true: Skipping 'local' vendor for {method}")
     
     # Create fallback vendor list: primary vendors first, then remaining vendors as fallbacks
     fallback_vendors = primary_vendors.copy()
