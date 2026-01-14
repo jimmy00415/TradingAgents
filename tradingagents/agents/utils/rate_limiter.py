@@ -16,12 +16,12 @@ class RateLimiter:
     Prevents 429 errors by managing token budgets and request pacing
     """
     
-    def __init__(self, tokens_per_minute: int = 200000, max_retries: int = 5):
+    def __init__(self, tokens_per_minute: int = 500000, max_retries: int = 10):
         """
         Initialize rate limiter
         
         Args:
-            tokens_per_minute: Token budget per minute (default 200K for optimal performance)
+            tokens_per_minute: Token budget per minute (default 500K for maximum performance)
             max_retries: Maximum retry attempts for 429 errors
         """
         self.tokens_per_minute = tokens_per_minute
@@ -168,8 +168,8 @@ class RateLimiter:
                 
                 # Check if it's a rate limit error
                 if "429" in error_str or "RateLimitError" in str(type(e).__name__):
-                    # Exponential backoff: 2^attempt seconds
-                    wait_time = (2 ** attempt) + (time.time() % 1)  # Add jitter
+                    # Faster exponential backoff: 0.5s base with reduced jitter
+                    wait_time = (0.5 * (2 ** attempt)) + (time.time() % 0.1)  # Faster recovery
                     
                     print(f"[RATE_LIMITER] 429 Error on attempt {attempt + 1}/{self.max_retries}")
                     print(f"[RATE_LIMITER] Backing off for {wait_time:.1f}s...")
@@ -197,7 +197,7 @@ def get_rate_limiter() -> RateLimiter:
     if _global_limiter is None:
         # Get token budget from environment or use default
         import os
-        tpm = int(os.getenv("AZURE_OPENAI_TPM", "200000"))  # Increased for better performance
+        tpm = int(os.getenv("AZURE_OPENAI_TPM", "500000"))  # Maximum performance mode
         _global_limiter = RateLimiter(tokens_per_minute=tpm)
     
     return _global_limiter
