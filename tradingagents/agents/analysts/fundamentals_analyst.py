@@ -71,7 +71,13 @@ def create_fundamentals_analyst(llm):
 
         chain = prompt | llm.bind_tools(tools)
 
-        result = chain.invoke(state["messages"])
+        from ..utils.rate_limiter import rate_limited
+        
+        @rate_limited(estimated_tokens=10000, cache_enabled=False)
+        def _invoke_chain():
+            return chain.invoke(state["messages"])
+        
+        result = _invoke_chain()
 
         report = ""
 

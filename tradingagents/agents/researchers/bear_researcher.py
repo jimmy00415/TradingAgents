@@ -46,7 +46,13 @@ Use this information to deliver a compelling bear argument, refute the bull's cl
 """
 
         try:
-            response = llm.invoke(prompt)
+            from ..utils.rate_limiter import rate_limited
+            
+            @rate_limited(estimated_tokens=12000, cache_enabled=False)
+            def _invoke_llm():
+                return llm.invoke(prompt)
+            
+            response = _invoke_llm()
             response_content = response.content
         except BadRequestError as e:
             if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():

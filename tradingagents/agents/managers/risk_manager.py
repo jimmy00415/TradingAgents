@@ -45,7 +45,13 @@ Deliverables:
 Focus on actionable insights and continuous improvement. Build on past lessons, critically evaluate all perspectives, and ensure each decision advances better outcomes."""
 
         try:
-            response = llm.invoke(prompt)
+            from ..utils.rate_limiter import rate_limited
+            
+            @rate_limited(estimated_tokens=10000, cache_enabled=False)
+            def _invoke_llm():
+                return llm.invoke(prompt)
+            
+            response = _invoke_llm()
             response_content = response.content
         except BadRequestError as e:
             if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():

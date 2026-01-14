@@ -34,7 +34,13 @@ Here is the current conversation history: {history} Here are the last arguments 
 Engage actively by addressing any specific concerns raised, refuting the weaknesses in their logic, and asserting the benefits of risk-taking to outpace market norms. Maintain a focus on debating and persuading, not just presenting data. Challenge each counterpoint to underscore why a high-risk approach is optimal. Output conversationally as if you are speaking without any special formatting."""
 
         try:
-            response = llm.invoke(prompt)
+            from ..utils.rate_limiter import rate_limited
+            
+            @rate_limited(estimated_tokens=8000, cache_enabled=False)
+            def _invoke_llm():
+                return llm.invoke(prompt)
+            
+            response = _invoke_llm()
             response_content = response.content
         except BadRequestError as e:
             if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():

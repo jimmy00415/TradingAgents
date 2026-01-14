@@ -2,6 +2,7 @@ import chromadb
 from chromadb.config import Settings
 from openai import AzureOpenAI, OpenAI
 import os
+from .rate_limiter import rate_limited, get_rate_limiter
 
 
 class FinancialSituationMemory:
@@ -10,6 +11,9 @@ class FinancialSituationMemory:
         backend_url = config.get("backend_url", "")
         self.is_hkbu = "hkbu" in backend_url.lower()
         llm_provider = config.get("llm_provider", "").lower()
+        
+        # Initialize rate limiter
+        self.rate_limiter = get_rate_limiter()
         
         if self.is_hkbu:
             # HKBU uses different embeddings endpoint structure - disable memory for now
@@ -67,14 +71,19 @@ class FinancialSituationMemory:
                 self.situation_collection = self.chroma_client.create_collection(name=name)
 
     def get_embedding(self, text):
-        """Get OpenAI embedding for a text"""
+        """Get OpenAI embedding for a text with rate limiting"""
         if self.is_hkbu:
             return None  # Skip embeddings for HKBU
         
-        response = self.client.embeddings.create(
-            model=self.embedding, input=text
-        )
-        return response.data[0].embedding
+        # Wrap API call with rate limiter
+        @rate_limited(estimated_tokens=len(text) // 4, cache_enabled=True)
+        def _get_embedding():
+            response = self.client.embeddings.create(
+                model=self.embedding, input=text
+            )
+            return response.data[0].embedding
+        
+        return _get_embedding()
 
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""

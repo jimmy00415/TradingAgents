@@ -38,7 +38,13 @@ def create_trader(llm, memory):
         ]
 
         try:
-            result = llm.invoke(messages)
+            from ..utils.rate_limiter import rate_limited
+            
+            @rate_limited(estimated_tokens=15000, cache_enabled=False)
+            def _invoke_trader():
+                return llm.invoke(messages)
+            
+            result = _invoke_trader()
             result_content = result.content
         except BadRequestError as e:
             if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():

@@ -59,6 +59,8 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         self, component_type: str, report: str, situation: str, returns_losses
     ) -> str:
         """Generate reflection for a component."""
+        from ..agents.utils.rate_limiter import rate_limited
+        
         messages = [
             ("system", self.reflection_system_prompt),
             (
@@ -67,8 +69,11 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
             ),
         ]
 
-        result = self.quick_thinking_llm.invoke(messages).content
-        return result
+        @rate_limited(estimated_tokens=len(str(report)) // 4 + len(situation) // 4 + 500, cache_enabled=True)
+        def _reflect():
+            return self.quick_thinking_llm.invoke(messages).content
+        
+        return _reflect()
 
     def reflect_bull_researcher(self, current_state, returns_losses, bull_memory):
         """Reflect on bull researcher's analysis and update memory."""

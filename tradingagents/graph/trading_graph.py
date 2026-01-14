@@ -236,8 +236,14 @@ class TradingAgentsGraph:
 
             final_state = trace[-1]
         else:
-            # Standard mode without tracing
-            final_state = self.graph.invoke(init_agent_state, **args)
+            # Standard mode without tracing - wrap with rate limiting
+            from ..agents.utils.rate_limiter import rate_limited
+            
+            @rate_limited(estimated_tokens=50000, cache_enabled=False)
+            def _invoke_graph():
+                return self.graph.invoke(init_agent_state, **args)
+            
+            final_state = _invoke_graph()
 
         # Store current state for reflection
         self.curr_state = final_state

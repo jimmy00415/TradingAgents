@@ -1,6 +1,7 @@
 # TradingAgents/graph/signal_processing.py
 
 from langchain_openai import ChatOpenAI
+from ..agents.utils.rate_limiter import rate_limited
 
 
 class SignalProcessor:
@@ -28,4 +29,8 @@ class SignalProcessor:
             ("human", full_signal),
         ]
 
-        return self.quick_thinking_llm.invoke(messages).content
+        @rate_limited(estimated_tokens=len(full_signal) // 4 + 100, cache_enabled=True)
+        def _process():
+            return self.quick_thinking_llm.invoke(messages).content
+        
+        return _process()

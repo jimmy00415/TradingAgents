@@ -35,7 +35,13 @@ Here is the current conversation history: {history} Here is the last response fr
 Engage by questioning their optimism and emphasizing the potential downsides they may have overlooked. Address each of their counterpoints to showcase why a conservative stance is ultimately the safest path for the firm's assets. Focus on debating and critiquing their arguments to demonstrate the strength of a low-risk strategy over their approaches. Output conversationally as if you are speaking without any special formatting."""
 
         try:
-            response = llm.invoke(prompt)
+            from ..utils.rate_limiter import rate_limited
+            
+            @rate_limited(estimated_tokens=8000, cache_enabled=False)
+            def _invoke_llm():
+                return llm.invoke(prompt)
+            
+            response = _invoke_llm()
             response_content = response.content
         except BadRequestError as e:
             if "content management policy" in str(e).lower() or "content filtering" in str(e).lower():
