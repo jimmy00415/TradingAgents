@@ -11,17 +11,20 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import json
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (for local development)
+try:
+    load_dotenv()
+except Exception:
+    pass  # Silently skip if .env doesn't exist (cloud deployment)
 
 # Azure OpenAI Configuration (Personal Account)
 # For local: set in .env file | For Streamlit Cloud: set in Secrets
 try:
     # Try to get from Streamlit secrets first (for cloud deployment)
     AZURE_KEY = st.secrets["AZURE_OPENAI_API_KEY"]
-    ALPHA_KEY = st.secrets["ALPHA_VANTAGE_API_KEY"]
+    ALPHA_KEY = st.secrets.get("ALPHA_VANTAGE_API_KEY", "")
     FINNHUB_KEY = st.secrets.get("FINNHUB_API_KEY", "")
-except (FileNotFoundError, KeyError):
+except (FileNotFoundError, KeyError, AttributeError):
     # Fall back to environment variables (for local development)
     AZURE_KEY = os.getenv("AZURE_OPENAI_API_KEY", "")
     ALPHA_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
