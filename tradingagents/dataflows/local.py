@@ -507,29 +507,37 @@ def get_reddit_company_news(
 
     try:
         while curr_date <= end_date_dt:
-        curr_date_str = curr_date.strftime("%Y-%m-%d")
-        fetch_result = fetch_top_from_category(
-            "company_news",
-            curr_date_str,
-            10,  # max limit per day
-            query,
-            data_path=os.path.join(DATA_DIR, "reddit_data"),
-        )
-        posts.extend(fetch_result)
-        curr_date += relativedelta(days=1)
+            curr_date_str = curr_date.strftime("%Y-%m-%d")
+            fetch_result = fetch_top_from_category(
+                "company_news",
+                curr_date_str,
+                10,  # max limit per day
+                query,
+                data_path=os.path.join(DATA_DIR, "reddit_data"),
+            )
+            posts.extend(fetch_result)
+            curr_date += relativedelta(days=1)
+            pbar.update(1)
 
-        pbar.update(1)
+        pbar.close()
 
-    pbar.close()
+        if len(posts) == 0:
+            return ""
 
-    if len(posts) == 0:
+        news_str = ""
+        for post in posts:
+            if post["content"] == "":
+                news_str += f"### {post['title']}\n\n"
+            else:
+                news_str += f"### {post['title']}\n\n{post['content']}\n\n"
+
+        return f"##{query} News Reddit, from {start_date} to {end_date}:\n\n{news_str}"
+    
+    except (FileNotFoundError, OSError) as e:
+        print(f"[INFO] Local reddit data not accessible: {type(e).__name__}")
+        pbar.close()
         return ""
-
-    news_str = ""
-    for post in posts:
-        if post["content"] == "":
-            news_str += f"### {post['title']}\n\n"
-        else:
-            news_str += f"### {post['title']}\n\n{post['content']}\n\n"
-
-    return f"##{query} News Reddit, from {start_date} to {end_date}:\n\n{news_str}"
+    except Exception as e:
+        print(f"[WARNING] Unexpected error fetching local reddit company news: {e}")
+        pbar.close()
+        return ""
