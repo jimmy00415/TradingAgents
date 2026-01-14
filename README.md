@@ -16,8 +16,8 @@
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=de">Deutsch</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=es">Español</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=fr">français</a> | 
-  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ja">日本�?/a> | 
-  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ko">한국�?/a> | 
+  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ja">日本�?/a> | 
+  <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ko">한국�?/a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=pt">Português</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=ru">Русский</a> | 
   <a href="https://www.readme-i18n.com/TauricResearch/TradingAgents?lang=zh">中文</a>
@@ -43,7 +43,7 @@
 
 <div align="center">
 
-🚀 [TradingAgents](#tradingagents-framework) | �?[Installation & CLI](#installation-and-cli) | 🎬 [Demo](https://www.youtube.com/watch?v=90gr5lwjIho) | 📦 [Package Usage](#tradingagents-package) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
+🚀 [TradingAgents](#tradingagents-framework) | �?[Installation & CLI](#installation-and-cli) | 🎬 [Demo](https://www.youtube.com/watch?v=90gr5lwjIho) | 📦 [Package Usage](#tradingagents-package) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
 
 </div>
 
@@ -123,12 +123,12 @@ TradingAgents requires API keys for data sources and LLM services:
 #### Quick Setup
 
 1. Copy the example environment file:
-   ```ash
+   ```bash
    cp .env.example .env
    ```
 
 2. Edit .env and add your API keys:
-   ```ash
+   ```bash
    ALPHA_VANTAGE_API_KEY=your_actual_alpha_vantage_key
    AZURE_OPENAI_API_KEY=your_actual_azure_openai_key
    ```
@@ -138,7 +138,9 @@ TradingAgents requires API keys for data sources and LLM services:
    - **Azure OpenAI/HKBU GenAI**: Contact your institution or use [OpenAI API](https://platform.openai.com/api-keys)
    - **Finnhub** (Optional): [finnhub.io/register](https://finnhub.io/register) (Free tier available)
 
- **For detailed setup instructions, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**
+**📖 For detailed API setup instructions, see [API_SETUP_GUIDE.md](API_SETUP_GUIDE.md)**
+
+**For complete setup guide, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**
 
 **Note:** TradingAgents users get increased Alpha Vantage rate limits (60 requests/min, no daily limits) thanks to their open-source support program.
 
