@@ -14,9 +14,11 @@ import json
 # Load environment variables
 load_dotenv()
 
-# Standard OpenAI Configuration (works from Streamlit Cloud)
-# Get your API key from: https://platform.openai.com/api-keys
-os.environ['OPENAI_API_KEY'] = 'sk-proj-YOUR_OPENAI_KEY_HERE'  # ⚠️ REPLACE WITH YOUR KEY
+# HKBU GenAI Platform - Azure OpenAI Configuration
+os.environ['OPENAI_API_KEY'] = '4821b42b-7279-4a5a-a715-35e48c4426fa'
+os.environ['AZURE_OPENAI_API_KEY'] = '4821b42b-7279-4a5a-a715-35e48c4426fa'
+os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://genai.hkbu.edu.hk/api/v0/rest'
+os.environ['AZURE_API_VERSION'] = '2024-05-01-preview'
 
 # Data source API keys (keep these)
 os.environ['ALPHA_VANTAGE_API_KEY'] = '5GK3NBVL9YVJI3QV'
@@ -105,9 +107,9 @@ with st.sidebar:
     st.subheader("🤖 AI Model Settings")
     llm_model = st.selectbox(
         "LLM Model",
-        options=["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+        options=["deepseek-r1", "deepseek-v3", "gpt-4o", "gpt-4o-mini"],
         index=0,
-        help="Select the OpenAI model for analysis"
+        help="Select the HKBU GenAI model for analysis"
     )
     
     debate_rounds = st.slider(
@@ -182,8 +184,11 @@ with col1:
                 config["max_debate_rounds"] = debate_rounds
                 config["max_risk_discuss_rounds"] = risk_rounds
                 
-                # Use standard OpenAI (not Azure)
-                config["llm_provider"] = "openai"
+                # Configure Azure OpenAI for HKBU platform
+                config["llm_provider"] = "azure"
+                config["backend_url"] = "https://genai.hkbu.edu.hk/api/v0/rest"
+                config["azure_api_version"] = "2024-05-01-preview"
+                config["azure_openai_api_key"] = "4821b42b-7279-4a5a-a715-35e48c4426fa"
                 
                 status_text.text("🤖 Initializing TradingAgents...")
                 progress_bar.progress(20)
