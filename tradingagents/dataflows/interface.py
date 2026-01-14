@@ -246,9 +246,11 @@ def route_to_vendor(method: str, *args, **kwargs):
     else:
         print(f"FINAL: Method '{method}' completed with {len(results)} result(s) from {vendor_attempt_count} vendor attempt(s)")
 
-    # Return single result if only one, otherwise concatenate as string
+    # Always return string to maintain consistent tool return type for LangGraph
     if len(results) == 1:
-        return results[0]
+        # Convert single result to string if it's not already
+        result = results[0]
+        return str(result) if not isinstance(result, str) else result
     else:
         # Convert all results to strings and concatenate
         return '\n'.join(str(result) for result in results)
