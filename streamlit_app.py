@@ -4,15 +4,16 @@ A web-based UI for running trading analysis through browser
 """
 
 import streamlit as st
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.default_config import DEFAULT_CONFIG
 import os
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import json
 
+# CRITICAL: Lazy imports to reduce memory footprint on Streamlit Cloud (1GB limit)
+# Do NOT import heavy modules at module level - they consume RAM before app even starts
+
 # Load environment variables (for local development)
 try:
+    from dotenv import load_dotenv
     load_dotenv()
 except Exception:
     pass  # Silently skip if .env doesn't exist (cloud deployment)
@@ -42,20 +43,33 @@ os.environ['FINNHUB_API_KEY'] = FINNHUB_KEY
 # Detect deployment environment and optimize configuration
 IS_CLOUD = os.getenv("STREAMLIT_RUNTIME_ENV") == "cloud" or "STREAMLIT_SHARING" in os.environ
 
-# Cloud-optimized configuration: Disable local data sources that won't work in ephemeral environment
+# Cloud-optimized: Configure environment BEFORE importing heavy modules
 if IS_CLOUD:
-    # Override config to use only live API sources
-    DEFAULT_CONFIG["data_vendors"] = {
-        "core_stock_apis": "yfinance",       # Reliable, no rate limits
-        "technical_indicators": "yfinance",  # Fast and accurate
-        "fundamental_data": "yfinance",      # Avoid Alpha Vantage free tier limits
-        "news_data": "finnhub",              # Single reliable source
-    }
-    # Disable local fallbacks completely
+    # Disable local fallbacks completely to save memory
     os.environ["DISABLE_LOCAL_SOURCES"] = "true"
-    print("[INFO] Running in CLOUD mode - local data sources disabled")
+    print("[INFO] Running in CLOUD mode - lazy loading enabled")
 else:
-    print("[INFO] Running in LOCAL mode - all data sources enabled")
+    print("[INFO] Running in LOCAL mode")
+
+# LAZY LOAD: Import heavy modules only when needed (after config)
+@st.cache_resource(show_spinner="Loading TradingAgents framework...")
+def get_default_config():
+    """Lazy load default config to reduce memory footprint"""
+    from tradingagents.default_config import DEFAULT_CONFIG
+    
+    # Cloud-optimized configuration
+    if IS_CLOUD:
+        DEFAULT_CONFIG["data_vendors"] = {
+            "core_stock_apis": "yfinance",
+            "technical_indicators": "yfinance",
+            "fundamental_data": "yfinance",
+            "news_data": "finnhub",
+        }
+    
+    return DEFAULT_CONFIG
+
+# Get config (cached, only loads once)
+DEFAULT_CONFIG = get_default_config()
 
 # Page configuration
 st.set_page_config(
@@ -263,6 +277,9 @@ with col1:
                 status_text.text("🔧 Configuring AI agents...")
                 progress_bar.progress(10)
                 
+                # LAZY IMPORT: Only import TradingAgentsGraph when needed (saves memory)
+                from tradingagents.graph.trading_graph import TradingAgentsGraph
+                
                 # Configure with explicit Azure OpenAI settings
                 config = DEFAULT_CONFIG.copy()
                 config["deep_think_llm"] = llm_model
@@ -281,7 +298,15 @@ with col1:
                 
                 # Verify deployment exists with helpful error message
                 try:
-                    ta = TradingAgentsGraph(debug=False, config=config)
+                    # Use st.cache_resource to cache the TradingAgentsGraph instance
+                    # This reduces memory usage by not creating multiple instances
+                    @st.cache_resource(show_spinner=False)
+                    def create_trading_agents(config_hash):
+                        return TradingAgentsGraph(debug=False, config=config)
+                    
+                    # Create hash of config to cache properly
+                    config_hash = f"{config['llm_provider']}_{config['deep_think_llm']}_{config['max_debate_rounds']}"
+                    ta = create_trading_agents(config_hash)
                 except Exception as init_error:
                     if "DeploymentNotFound" in str(init_error):
                         st.error(f"❌ Azure deployment '{llm_model}' not found")
