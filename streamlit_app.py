@@ -205,8 +205,35 @@ with col1:
                 status_text.text("🤖 Initializing TradingAgents...")
                 progress_bar.progress(20)
                 
+                # Verify deployment exists with helpful error message
+                try:
+                    ta = TradingAgentsGraph(debug=False, config=config)
+                except Exception as init_error:
+                    if "DeploymentNotFound" in str(init_error):
+                        st.error(f"❌ Azure deployment '{llm_model}' not found")
+                        st.info("""
+                        **To fix this issue:**
+                        
+                        1. Go to [Azure Portal](https://portal.azure.com)
+                        2. Navigate to your Azure OpenAI resource: `jimmy00415`
+                        3. Click **"Deployments"** in the left menu
+                        4. Click **"Create new deployment"** or **"Deploy model"**
+                        5. Create a deployment:
+                           - **Deployment name**: `{model}` (must match exactly)
+                           - **Model**: Select `{model}` from the list
+                           - **Deployment type**: Standard
+                        6. Wait for deployment to complete (~1 minute)
+                        7. Return here and try again
+                        
+                        **Current selected model**: `{model}`
+                        
+                        If `{model}` is not available, create a deployment for `gpt-4o-mini` instead and select it from the dropdown.
+                        """.format(model=llm_model))
+                        st.stop()
+                    else:
+                        raise
+                
                 # Run analysis
-                ta = TradingAgentsGraph(debug=False, config=config)
                 
                 status_text.text("📊 Gathering market data...")
                 progress_bar.progress(40)
