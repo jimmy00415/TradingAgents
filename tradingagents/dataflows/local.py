@@ -7,6 +7,27 @@ from dateutil.relativedelta import relativedelta
 import json
 from .reddit_utils import fetch_top_from_category
 from tqdm import tqdm
+import signal
+from contextlib import contextmanager
+
+# Timeout context manager for preventing infinite hangs
+@contextmanager
+def timeout(seconds=60):
+    """Context manager to timeout long-running operations"""
+    def timeout_handler(signum, frame):
+        raise TimeoutError(f"Operation timed out after {seconds} seconds")
+    
+    # Set up timeout (Unix-only, Windows uses alternative approach)
+    if os.name != 'nt':  # Unix/Linux/Mac
+        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(seconds)
+        try:
+            yield
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+    else:  # Windows - no signal support, skip timeout
+        yield
 
 def get_YFin_data_window(
     symbol: Annotated[str, "ticker symbol of the company"],
@@ -379,6 +400,20 @@ def get_reddit_global_news(
     Returns:
         str: A formatted string containing the latest news articles posts on reddit
     """
+    
+    # Early check: Skip if in cloud environment or local sources disabled
+    disable_local = os.getenv("DISABLE_LOCAL_SOURCES", "false").lower() == "true"
+    if disable_local:
+        print(f"[INFO] Local sources disabled (DISABLE_LOCAL_SOURCES=true), skipping Reddit")
+        return ""
+    
+    reddit_data_path = os.path.join(DATA_DIR, "reddit_data")
+    
+    # Early check: Skip if directory doesn't exist
+    if not os.path.exists(reddit_data_path):
+        print(f"[INFO] Reddit data directory not found: {reddit_data_path}")
+        print(f"[INFO] Skipping local reddit global news (data not available)")
+        return ""
 
     curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
     before = curr_date_dt - relativedelta(days=look_back_days)
@@ -392,15 +427,6 @@ def get_reddit_global_news(
     pbar = tqdm(desc=f"Getting Global News on {curr_date}", total=total_iterations)
 
     try:
-        reddit_data_path = os.path.join(DATA_DIR, "reddit_data")
-        
-        # Check if the reddit data directory exists
-        if not os.path.exists(reddit_data_path):
-            print(f"[INFO] Reddit data directory not found: {reddit_data_path}")
-            print(f"[INFO] Skipping local reddit global news (data not available)")
-            pbar.close()
-            return ""
-        
         while curr_iter_date <= curr_date_dt:
             curr_date_str = curr_iter_date.strftime("%Y-%m-%d")
             fetch_result = fetch_top_from_category(
@@ -452,6 +478,13 @@ def get_reddit_company_news(
     Returns:
         str: A formatted string containing news articles posts on reddit
     """
+    
+    # Early check: Skip if in cloud environment or local sources disabled
+    disable_local = os.getenv("DISABLE_LOCAL_SOURCES", "false").lower() == "true"
+    if disable_local:
+        print(f"[INFO] Local sources disabled (DISABLE_LOCAL_SOURCES=true), skipping Reddit")
+        return ""
+    
     # Check if reddit data directory exists
     reddit_path = os.path.join(DATA_DIR, "reddit_data")
     if not os.path.exists(reddit_path):
@@ -472,7 +505,8 @@ def get_reddit_company_news(
         total=total_iterations,
     )
 
-    while curr_date <= end_date_dt:
+    try:
+        while curr_date <= end_date_dt:
         curr_date_str = curr_date.strftime("%Y-%m-%d")
         fetch_result = fetch_top_from_category(
             "company_news",

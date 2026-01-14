@@ -48,6 +48,8 @@ DEFAULT_CONFIG = {
     "tool_vendors": {
         "get_insider_sentiment": "finnhub",        # Finnhub has superior insider data
         "get_insider_transactions": "finnhub",     # Finnhub provides detailed transaction info
+        "get_global_news": "google",               # Google News is fast and reliable (no Reddit dependency)
+        "get_company_news": "alpha_vantage,google", # Multi-source with fallback
         # Example: "get_stock_data": "alpha_vantage",  # Override category default
         # Example: "get_news": "openai",               # Override category default
     },
