@@ -200,8 +200,8 @@ with st.sidebar:
     llm_model = st.selectbox(
         "LLM Model",
         options=[
-            "gpt-4o",           # GPT-4 Optimized (recommended)
-            "gpt-4o-mini",      # Fast & cost-effective
+            "gpt-4o-mini",      # Fast & cost-effective (RECOMMENDED for rate limits)
+            "gpt-4o",           # GPT-4 Optimized (10K TPM limit)
             "gpt-4-turbo",      # GPT-4 Turbo
             "gpt-4",            # GPT-4 base
             "gpt-3.5-turbo",    # Fast legacy model
@@ -209,7 +209,7 @@ with st.sidebar:
             "o1-mini",          # Compact reasoning
         ],
         index=0,
-        help="Select OpenAI model (Azure Foundry provides direct access to all OpenAI models)"
+        help="gpt-4o-mini is RECOMMENDED (50K TPM) to avoid rate limits. gpt-4o has only 10K TPM."
     )
     
     debate_rounds = st.slider(
@@ -362,21 +362,32 @@ with col1:
                     print(f"{'='*80}\n")
                     
                     # Handle rate limit errors
-                    if "429" in error_msg or "RateLimitReached" in error_msg:
+                    if "429" in error_msg or "RateLimitReached" in error_msg or "RateLimitError" in str(type(e).__name__):
                         st.error("⚠️ **Rate Limit Reached**")
-                        st.warning("""
-                        Your Azure OpenAI deployment has reached its token rate limit.
                         
-                        **Current limits (S0 tier):**
-                        - 1000 tokens per minute
-                        - 1 request per 10 seconds
+                        # Extract which model hit the limit
+                        rate_limit_model = "gpt-4o"  # Default assumption
+                        if "gpt-4o-mini" in error_msg:
+                            rate_limit_model = "gpt-4o-mini"
+                        elif "gpt-4o" in error_msg:
+                            rate_limit_model = "gpt-4o"
                         
-                        **Solutions:**
-                        1. Wait 60 seconds and try again
-                        2. Use a simpler ticker with less data
-                        3. Reduce debate rounds in Advanced Settings
-                        4. Upgrade your Azure OpenAI deployment tier at https://aka.ms/oai/quotaincrease
+                        st.warning(f"""
+                        **Your Azure OpenAI deployment for `{rate_limit_model}` has reached its rate limit.**
+                        
+                        **Current capacity:**
+                        - **gpt-4o**: 10,000 tokens/minute (10K TPM)
+                        - **gpt-4o-mini**: 50,000 tokens/minute (50K TPM)
+                        
+                        **Quick fixes:**
+                        1. ✅ **Switch to gpt-4o-mini** (5x higher limit) - Select in sidebar
+                        2. ⏳ **Wait 60 seconds** and try again
+                        3. 🔧 **Reduce complexity**: Lower debate rounds to 1
+                        4. 💰 **Upgrade capacity**: [Azure Portal](https://portal.azure.com) → Jimmy00415 → Deployments → Increase TPM
+                        
+                        **Recommended**: Use **gpt-4o-mini** (default) to avoid this error!
                         """)
+                        st.info("💡 **Tip**: gpt-4o-mini is 70% cheaper and has 5x higher rate limits, perfect for testing!")
                         st.stop()
                     else:
                         # Other errors
