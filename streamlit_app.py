@@ -16,18 +16,43 @@ load_dotenv()
 
 # Azure OpenAI Configuration (Personal Account)
 # For local: set in .env file | For Streamlit Cloud: set in Secrets
-AZURE_KEY = st.secrets.get("AZURE_OPENAI_API_KEY", os.getenv("AZURE_OPENAI_API_KEY", ""))
+try:
+    # Try to get from Streamlit secrets first (for cloud deployment)
+    AZURE_KEY = st.secrets["AZURE_OPENAI_API_KEY"]
+    ALPHA_KEY = st.secrets["ALPHA_VANTAGE_API_KEY"]
+    FINNHUB_KEY = st.secrets.get("FINNHUB_API_KEY", "")
+except (FileNotFoundError, KeyError):
+    # Fall back to environment variables (for local development)
+    AZURE_KEY = os.getenv("AZURE_OPENAI_API_KEY", "")
+    ALPHA_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
+    FINNHUB_KEY = os.getenv("FINNHUB_API_KEY", "")
+
 os.environ['AZURE_OPENAI_API_KEY'] = AZURE_KEY
 os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://jimmy00415.openai.azure.com/'
-os.environ['AZURE_API_VERSION'] = '2024-05-01-preview'
+os.environ['AZURE_API_VERSION'] = '2024-10-21'
 os.environ['OPENAI_API_KEY'] = AZURE_KEY
 
-# Data source API keys (keep these)
-os.environ['ALPHA_VANTAGE_API_KEY'] = '5GK3NBVL9YVJI3QV'
-os.environ['FINNHUB_API_KEY'] = 'd227u3pr01qt86776u90d227u3pr01qt86776u9g'
-os.environ['REDDIT_CLIENT_ID'] = 'iFpgQbdAlpGiKCEFHufQxw'
-os.environ['REDDIT_CLIENT_SECRET'] = 'KP6W-3Op9G_kNCAHQUuVYq-OBNz_NA'
-os.environ['REDDIT_USER_AGENT'] = 'TradingAgents:v1.0:by/u/Old-Reflection1388'
+# Data source API keys
+os.environ['ALPHA_VANTAGE_API_KEY'] = ALPHA_KEY
+os.environ['FINNHUB_API_KEY'] = FINNHUB_KEY
+
+# Detect deployment environment and optimize configuration
+IS_CLOUD = os.getenv("STREAMLIT_RUNTIME_ENV") == "cloud" or "STREAMLIT_SHARING" in os.environ
+
+# Cloud-optimized configuration: Disable local data sources that won't work in ephemeral environment
+if IS_CLOUD:
+    # Override config to use only live API sources
+    DEFAULT_CONFIG["data_vendors"] = {
+        "core_stock_apis": "yfinance",       # Reliable, no rate limits
+        "technical_indicators": "yfinance",  # Fast and accurate
+        "fundamental_data": "yfinance",      # Avoid Alpha Vantage free tier limits
+        "news_data": "finnhub",              # Single reliable source
+    }
+    # Disable local fallbacks completely
+    os.environ["DISABLE_LOCAL_SOURCES"] = "true"
+    print("[INFO] Running in CLOUD mode - local data sources disabled")
+else:
+    print("[INFO] Running in LOCAL mode - all data sources enabled")
 
 # Page configuration
 st.set_page_config(
@@ -84,11 +109,57 @@ st.markdown("""
 # Header
 st.markdown('<h1 class="main-header">📈 TradingAgents</h1>', unsafe_allow_html=True)
 st.markdown('<p style="text-align: center; font-size: 1.2rem;">Multi-Agent LLM Financial Trading Framework</p>', unsafe_allow_html=True)
+
+# Add configuration status
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("API Version", os.environ.get('AZURE_API_VERSION', 'Not set'))
+with col2:
+    economy_mode_status = "✅ ON" if DEFAULT_CONFIG.get("economy_mode", True) else "❌ OFF"
+    st.metric("Economy Mode", economy_mode_status)
+with col3:
+    current_model = "gpt-4o-mini/gpt-4o" if DEFAULT_CONFIG.get("economy_mode", True) else "gpt-4o"
+    st.metric("Models", current_model)
+with col4:
+    if st.button("🔄 Clear Cache"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.success("Cache cleared!")
+        st.rerun()
+
+# Economy Mode Info
+if DEFAULT_CONFIG.get("economy_mode", True):
+    st.info("💡 **Economy Mode Active**: Using gpt-4o-mini for research (70% cost savings) and gpt-4o for final decisions. Perfect for low-tier Azure deployments!")
+
 st.markdown("---")
 
 # Sidebar Configuration
 with st.sidebar:
     st.header("⚙️ Configuration")
+    
+    # Economy Mode Toggle
+    st.subheader("🎯 Performance Mode")
+    economy_mode = st.checkbox(
+        "Enable Economy Mode",
+        value=DEFAULT_CONFIG.get("economy_mode", True),
+        help="Use gpt-4o-mini for research/analysis (70% cheaper) and gpt-4o for final decisions. Recommended for S0 tier (10K tokens/min)."
+    )
+    
+    if economy_mode != DEFAULT_CONFIG.get("economy_mode", True):
+        DEFAULT_CONFIG["economy_mode"] = economy_mode
+        os.environ["ECONOMY_MODE"] = "true" if economy_mode else "false"
+        st.rerun()
+    
+    if economy_mode:
+        st.success("✅ Cost-optimized mode active")
+        st.caption("• Research: gpt-4o-mini")
+        st.caption("• Analysis: gpt-4o-mini")  
+        st.caption("• Decision: gpt-4o")
+    else:
+        st.warning("⚠️ High token usage mode")
+        st.caption("• All agents: gpt-4o")
+    
+    st.markdown("---")
     
     # Stock Selection
     st.subheader("📊 Stock Selection")
@@ -234,19 +305,63 @@ with col1:
                         raise
                 
                 # Run analysis
+                try:
+                    status_text.text("📊 Gathering market data...")
+                    progress_bar.progress(40)
+                    
+                    status_text.text("🧠 AI agents analyzing...")
+                    progress_bar.progress(60)
+                    
+                    final_state, decision = ta.propagate(ticker_upper, date_str)
+                    
+                    status_text.text("✅ Analysis complete!")
+                    progress_bar.progress(100)
+                    
+                    st.success("✅ Analysis Complete!")
                 
-                status_text.text("📊 Gathering market data...")
-                progress_bar.progress(40)
-                
-                status_text.text("🧠 AI agents analyzing...")
-                progress_bar.progress(60)
-                
-                _, decision = ta.propagate(ticker_upper, date_str)
-                
-                status_text.text("✅ Analysis complete!")
-                progress_bar.progress(100)
-                
-                st.success("✅ Analysis Complete!")
+                except Exception as e:
+                    error_msg = str(e)
+                    
+                    # Log full error details for debugging
+                    import traceback
+                    print(f"\n{'='*80}")
+                    print("STREAMLIT ERROR CAUGHT")
+                    print(f"{'='*80}")
+                    print(f"Error type: {type(e).__name__}")
+                    print(f"Error message: {error_msg}")
+                    print(f"\nFull traceback:")
+                    print(traceback.format_exc())
+                    print(f"{'='*80}\n")
+                    
+                    # Handle rate limit errors
+                    if "429" in error_msg or "RateLimitReached" in error_msg:
+                        st.error("⚠️ **Rate Limit Reached**")
+                        st.warning("""
+                        Your Azure OpenAI deployment has reached its token rate limit.
+                        
+                        **Current limits (S0 tier):**
+                        - 1000 tokens per minute
+                        - 1 request per 10 seconds
+                        
+                        **Solutions:**
+                        1. Wait 60 seconds and try again
+                        2. Use a simpler ticker with less data
+                        3. Reduce debate rounds in Advanced Settings
+                        4. Upgrade your Azure OpenAI deployment tier at https://aka.ms/oai/quotaincrease
+                        """)
+                        st.stop()
+                    else:
+                        # Other errors
+                        st.error(f"❌ Error during analysis: {error_msg}")
+                        with st.expander("🔍 Technical Details"):
+                            st.code(error_msg)
+                            # Show where error occurred
+                            st.markdown("**Stack Trace (last 5 lines):**")
+                            tb_lines = traceback.format_exc().split('\n')
+                            for line in tb_lines[-10:]:
+                                if line.strip():
+                                    st.code(line, language="python")
+                        st.stop()
                 
                 # Display Trading Decision
                 st.markdown("---")
@@ -281,24 +396,121 @@ with col1:
                 
                 # Show Generated Reports
                 st.markdown("---")
-                st.subheader("📄 Generated Reports")
+                st.subheader("📄 Analysis Reports")
                 
-                report_path = f"./results/{ticker_upper}/{date_str}/reports"
-                if os.path.exists(report_path):
-                    report_files = [f for f in os.listdir(report_path) if f.endswith('.md')]
+                # Display reports from final_state (in-memory, no file I/O needed)
+                if final_state:
+                    # Create tabs for different report types
+                    report_tabs = st.tabs([
+                        "📈 Market Analysis",
+                        "📰 News Analysis", 
+                        "📊 Fundamentals",
+                        "💭 Sentiment Analysis",
+                        "🤝 Investment Debate",
+                        "⚠️ Risk Analysis",
+                        "💼 Investment Plan",
+                        "🎯 Final Decision"
+                    ])
                     
-                    if report_files:
-                        tabs = st.tabs([f"📝 {file.replace('.md', '').replace('_', ' ').title()}" for file in report_files])
-                        
-                        for i, file in enumerate(report_files):
-                            with tabs[i]:
-                                with open(os.path.join(report_path, file), 'r', encoding='utf-8') as f:
-                                    content = f.read()
-                                    st.markdown(content)
-                    else:
-                        st.info("No markdown reports generated yet.")
+                    # Market Report
+                    with report_tabs[0]:
+                        if final_state.get("market_report"):
+                            st.markdown(final_state["market_report"])
+                        else:
+                            st.info("No market report available")
+                    
+                    # News Report
+                    with report_tabs[1]:
+                        if final_state.get("news_report"):
+                            st.markdown(final_state["news_report"])
+                        else:
+                            st.info("No news report available")
+                    
+                    # Fundamentals Report
+                    with report_tabs[2]:
+                        if final_state.get("fundamentals_report"):
+                            st.markdown(final_state["fundamentals_report"])
+                        else:
+                            st.info("No fundamentals report available")
+                    
+                    # Sentiment Report
+                    with report_tabs[3]:
+                        if final_state.get("sentiment_report"):
+                            st.markdown(final_state["sentiment_report"])
+                        else:
+                            st.info("No sentiment report available")
+                    
+                    # Investment Debate
+                    with report_tabs[4]:
+                        if final_state.get("investment_debate_state"):
+                            debate = final_state["investment_debate_state"]
+                            
+                            st.markdown("### 🐂 Bull Case")
+                            if debate.get("bull_history"):
+                                for i, msg in enumerate(debate["bull_history"], 1):
+                                    with st.expander(f"Bull Argument {i}"):
+                                        st.markdown(msg)
+                            
+                            st.markdown("### 🐻 Bear Case")
+                            if debate.get("bear_history"):
+                                for i, msg in enumerate(debate["bear_history"], 1):
+                                    with st.expander(f"Bear Argument {i}"):
+                                        st.markdown(msg)
+                            
+                            st.markdown("### ⚖️ Judge Decision")
+                            if debate.get("judge_decision"):
+                                st.success(debate["judge_decision"])
+                        else:
+                            st.info("No investment debate available")
+                    
+                    # Risk Analysis
+                    with report_tabs[5]:
+                        if final_state.get("risk_debate_state"):
+                            risk = final_state["risk_debate_state"]
+                            
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.markdown("### 🔴 Risky View")
+                                if risk.get("risky_history"):
+                                    for msg in risk["risky_history"]:
+                                        st.info(msg)
+                            
+                            with col2:
+                                st.markdown("### 🟢 Safe View")
+                                if risk.get("safe_history"):
+                                    for msg in risk["safe_history"]:
+                                        st.success(msg)
+                            
+                            with col3:
+                                st.markdown("### 🟡 Neutral View")
+                                if risk.get("neutral_history"):
+                                    for msg in risk["neutral_history"]:
+                                        st.warning(msg)
+                            
+                            st.markdown("### ⚖️ Risk Manager Decision")
+                            if risk.get("judge_decision"):
+                                st.info(risk["judge_decision"])
+                        else:
+                            st.info("No risk analysis available")
+                    
+                    # Investment Plan
+                    with report_tabs[6]:
+                        if final_state.get("investment_plan"):
+                            st.markdown(final_state["investment_plan"])
+                        elif final_state.get("trader_investment_plan"):
+                            st.markdown(final_state["trader_investment_plan"])
+                        else:
+                            st.info("No investment plan available")
+                    
+                    # Final Decision
+                    with report_tabs[7]:
+                        if final_state.get("final_trade_decision"):
+                            st.markdown(final_state["final_trade_decision"])
+                        else:
+                            st.info("No final decision available")
                 else:
-                    st.info("No reports directory found yet.")
+                    st.info("No analysis state available")
                 
             except Exception as e:
                 st.error(f"❌ Error during analysis")

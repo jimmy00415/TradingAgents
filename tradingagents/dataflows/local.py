@@ -452,6 +452,12 @@ def get_reddit_company_news(
     Returns:
         str: A formatted string containing news articles posts on reddit
     """
+    # Check if reddit data directory exists
+    reddit_path = os.path.join(DATA_DIR, "reddit_data")
+    if not os.path.exists(reddit_path):
+        print(f"[INFO] Reddit data directory not found: {reddit_path}")
+        print(f"[INFO] Skipping local reddit company news (data not available)")
+        return ""
 
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")

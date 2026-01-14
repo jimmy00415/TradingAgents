@@ -1,6 +1,7 @@
 import chromadb
 from chromadb.config import Settings
-from openai import OpenAI
+from openai import AzureOpenAI, OpenAI
+import os
 
 
 class FinancialSituationMemory:
@@ -8,6 +9,7 @@ class FinancialSituationMemory:
         # Check if using HKBU GenAI (which has different embeddings endpoint structure)
         backend_url = config.get("backend_url", "")
         self.is_hkbu = "hkbu" in backend_url.lower()
+        llm_provider = config.get("llm_provider", "").lower()
         
         if self.is_hkbu:
             # HKBU uses different embeddings endpoint structure - disable memory for now
@@ -16,6 +18,25 @@ class FinancialSituationMemory:
             self.chroma_client = None
             self.situation_collection = None
             print(f"[INFO] Memory disabled for HKBU GenAI (embeddings endpoint not compatible)")
+        elif llm_provider == "azure":
+            # Azure OpenAI with proper embedding model
+            self.embedding = "text-embedding-3-small"
+            azure_endpoint = config.get("backend_url") or os.getenv("AZURE_OPENAI_ENDPOINT")
+            azure_api_version = config.get("azure_api_version") or os.getenv("AZURE_API_VERSION")
+            azure_api_key = config.get("azure_openai_api_key") or os.getenv("AZURE_OPENAI_API_KEY")
+            
+            self.client = AzureOpenAI(
+                azure_endpoint=azure_endpoint,
+                api_key=azure_api_key,
+                api_version=azure_api_version,
+            )
+            self.chroma_client = chromadb.Client(Settings(allow_reset=True))
+            # Get or create collection (handle existing collections)
+            try:
+                self.situation_collection = self.chroma_client.get_collection(name=name)
+            except:
+                self.situation_collection = self.chroma_client.create_collection(name=name)
+            print(f"[INFO] Memory enabled with Azure OpenAI embedding model: {self.embedding}")
         elif config["backend_url"] == "http://localhost:11434/v1":
             self.embedding = "nomic-embed-text"
             self.client = OpenAI(base_url=config["backend_url"])

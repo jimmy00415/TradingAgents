@@ -93,18 +93,44 @@ class TradingAgentsGraph:
                     "Azure OpenAI configuration requires endpoint, API version, and API key."
                 )
 
-            self.deep_thinking_llm = AzureChatOpenAI(
-                azure_deployment=self.config["deep_think_llm"],
-                azure_endpoint=azure_endpoint,
-                api_key=azure_api_key,
-                openai_api_version=azure_api_version,
-            )
-            self.quick_thinking_llm = AzureChatOpenAI(
-                azure_deployment=self.config["quick_think_llm"],
-                azure_endpoint=azure_endpoint,
-                api_key=azure_api_key,
-                openai_api_version=azure_api_version,
-            )
+            # Economy Mode: Use different models for different tasks
+            economy_mode = self.config.get("economy_mode", False)
+            
+            if economy_mode:
+                economy_config = self.config.get("economy_config", {})
+                # Researcher/analyst model (cheap & fast)
+                researcher_model = economy_config.get("researcher_model", "gpt-4o-mini")
+                # Final decision model (quality matters)
+                decision_model = economy_config.get("decision_model", "gpt-4o")
+                
+                print(f"[ECONOMY MODE] Using {researcher_model} for research/analysis")
+                print(f"[ECONOMY MODE] Using {decision_model} for final decisions")
+                
+                self.deep_thinking_llm = AzureChatOpenAI(
+                    azure_deployment=decision_model,
+                    azure_endpoint=azure_endpoint,
+                    api_key=azure_api_key,
+                    openai_api_version=azure_api_version,
+                )
+                self.quick_thinking_llm = AzureChatOpenAI(
+                    azure_deployment=researcher_model,
+                    azure_endpoint=azure_endpoint,
+                    api_key=azure_api_key,
+                    openai_api_version=azure_api_version,
+                )
+            else:
+                self.deep_thinking_llm = AzureChatOpenAI(
+                    azure_deployment=self.config["deep_think_llm"],
+                    azure_endpoint=azure_endpoint,
+                    api_key=azure_api_key,
+                    openai_api_version=azure_api_version,
+                )
+                self.quick_thinking_llm = AzureChatOpenAI(
+                    azure_deployment=self.config["quick_think_llm"],
+                    azure_endpoint=azure_endpoint,
+                    api_key=azure_api_key,
+                    openai_api_version=azure_api_version,
+                )
         elif self.config["llm_provider"].lower() == "anthropic":
             self.deep_thinking_llm = ChatAnthropic(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
             self.quick_thinking_llm = ChatAnthropic(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])

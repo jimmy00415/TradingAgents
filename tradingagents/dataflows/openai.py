@@ -3,10 +3,15 @@ from .config import get_config
 
 
 def get_stock_news_openai(query, start_date, end_date):
+    """
+    Note: This endpoint (/responses) is not available on Azure OpenAI.
+    Will return empty string to allow fallback to other vendors.
+    """
     config = get_config()
     client = OpenAI(base_url=config["backend_url"])
 
-    response = client.responses.create(
+    try:
+        response = client.responses.create(
         model=config["quick_think_llm"],
         input=[
             {
@@ -33,8 +38,13 @@ def get_stock_news_openai(query, start_date, end_date):
         top_p=1,
         store=True,
     )
-
-    return response.output[1].content[0].text
+        return response.output[1].content[0].text
+    except (NotFoundError, APIError) as e:
+        print(f"[INFO] OpenAI stock news endpoint not available (expected for Azure): {type(e).__name__}")
+        return ""
+    except Exception as e:
+        print(f"[WARNING] Unexpected error fetching OpenAI stock news: {e}")
+        return ""
 
 
 def get_global_news_openai(curr_date, look_back_days=7, limit=5):
@@ -87,35 +97,48 @@ def get_global_news_openai(curr_date, look_back_days=7, limit=5):
 
 
 def get_fundamentals_openai(ticker, curr_date):
+    """
+    Retrieve fundamental data using OpenAI's web search capability.
+    
+    Note: This requires the /responses endpoint which is not available on Azure OpenAI.
+    Will gracefully return empty string if endpoint is not supported, allowing fallback
+    to other vendors like yfinance or alpha_vantage.
+    """
     config = get_config()
     client = OpenAI(base_url=config["backend_url"])
 
-    response = client.responses.create(
-        model=config["quick_think_llm"],
-        input=[
-            {
-                "role": "system",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": f"Can you search Fundamental for discussions on {ticker} during of the month before {curr_date} to the month of {curr_date}. Make sure you only get the data posted during that period. List as a table, with PE/PS/Cash flow/ etc",
-                    }
-                ],
-            }
-        ],
-        text={"format": {"type": "text"}},
-        reasoning={},
-        tools=[
-            {
-                "type": "web_search_preview",
-                "user_location": {"type": "approximate"},
-                "search_context_size": "low",
-            }
-        ],
-        temperature=1,
-        max_output_tokens=4096,
-        top_p=1,
-        store=True,
-    )
-
-    return response.output[1].content[0].text
+    try:
+        response = client.responses.create(
+            model=config["quick_think_llm"],
+            input=[
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": f"Can you search Fundamental for discussions on {ticker} during of the month before {curr_date} to the month of {curr_date}. Make sure you only get the data posted during that period. List as a table, with PE/PS/Cash flow/ etc",
+                        }
+                    ],
+                }
+            ],
+            text={"format": {"type": "text"}},
+            reasoning={},
+            tools=[
+                {
+                    "type": "web_search_preview",
+                    "user_location": {"type": "approximate"},
+                    "search_context_size": "low",
+                }
+            ],
+            temperature=1,
+            max_output_tokens=4096,
+            top_p=1,
+            store=True,
+        )
+        return response.output[1].content[0].text
+    except (NotFoundError, APIError) as e:
+        print(f"[INFO] OpenAI fundamentals endpoint not available (expected for Azure): {type(e).__name__}")
+        return ""
+    except Exception as e:
+        print(f"[WARNING] Unexpected error fetching OpenAI fundamentals: {e}")
+        return ""

@@ -3,7 +3,92 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import yfinance as yf
 import os
+import json
 from .stockstats_utils import StockstatsUtils
+
+def get_fundamentals(ticker: str, curr_date: str = None) -> str:
+    """
+    Retrieve comprehensive fundamental data for a given ticker symbol using yfinance.
+    
+    Args:
+        ticker (str): Ticker symbol of the company
+        curr_date (str): Current date you are trading at, yyyy-mm-dd (not used for yfinance)
+    
+    Returns:
+        str: Company overview data including financial ratios and key metrics in JSON format
+    """
+    try:
+        ticker_obj = yf.Ticker(ticker.upper())
+        info = ticker_obj.info
+        
+        if not info or len(info) == 0:
+            return f"No fundamental data found for symbol '{ticker}'"
+        
+        # Extract key fundamental data
+        fundamentals = {
+            "Symbol": ticker.upper(),
+            "Company Name": info.get("longName", "N/A"),
+            "Sector": info.get("sector", "N/A"),
+            "Industry": info.get("industry", "N/A"),
+            "Market Cap": info.get("marketCap", "N/A"),
+            "Enterprise Value": info.get("enterpriseValue", "N/A"),
+            "Trailing PE": info.get("trailingPE", "N/A"),
+            "Forward PE": info.get("forwardPE", "N/A"),
+            "PEG Ratio": info.get("pegRatio", "N/A"),
+            "Price to Book": info.get("priceToBook", "N/A"),
+            "Price to Sales": info.get("priceToSalesTrailing12Months", "N/A"),
+            "EV to Revenue": info.get("enterpriseToRevenue", "N/A"),
+            "EV to EBITDA": info.get("enterpriseToEbitda", "N/A"),
+            "Profit Margin": info.get("profitMargins", "N/A"),
+            "Operating Margin": info.get("operatingMargins", "N/A"),
+            "Return on Assets": info.get("returnOnAssets", "N/A"),
+            "Return on Equity": info.get("returnOnEquity", "N/A"),
+            "Revenue": info.get("totalRevenue", "N/A"),
+            "Revenue Per Share": info.get("revenuePerShare", "N/A"),
+            "Quarterly Revenue Growth": info.get("revenueGrowth", "N/A"),
+            "Gross Profit": info.get("grossProfits", "N/A"),
+            "EBITDA": info.get("ebitda", "N/A"),
+            "Net Income": info.get("netIncomeToCommon", "N/A"),
+            "Diluted EPS": info.get("trailingEps", "N/A"),
+            "Quarterly Earnings Growth": info.get("earningsGrowth", "N/A"),
+            "Total Cash": info.get("totalCash", "N/A"),
+            "Total Cash Per Share": info.get("totalCashPerShare", "N/A"),
+            "Total Debt": info.get("totalDebt", "N/A"),
+            "Debt to Equity": info.get("debtToEquity", "N/A"),
+            "Current Ratio": info.get("currentRatio", "N/A"),
+            "Book Value Per Share": info.get("bookValue", "N/A"),
+            "Operating Cash Flow": info.get("operatingCashflow", "N/A"),
+            "Free Cash Flow": info.get("freeCashflow", "N/A"),
+            "Beta": info.get("beta", "N/A"),
+            "52 Week High": info.get("fiftyTwoWeekHigh", "N/A"),
+            "52 Week Low": info.get("fiftyTwoWeekLow", "N/A"),
+            "50 Day Average": info.get("fiftyDayAverage", "N/A"),
+            "200 Day Average": info.get("twoHundredDayAverage", "N/A"),
+            "Shares Outstanding": info.get("sharesOutstanding", "N/A"),
+            "Float Shares": info.get("floatShares", "N/A"),
+            "Shares Short": info.get("sharesShort", "N/A"),
+            "Short Ratio": info.get("shortRatio", "N/A"),
+            "Short Percent of Float": info.get("shortPercentOfFloat", "N/A"),
+            "Dividend Rate": info.get("dividendRate", "N/A"),
+            "Dividend Yield": info.get("dividendYield", "N/A"),
+            "Payout Ratio": info.get("payoutRatio", "N/A"),
+            "Ex-Dividend Date": info.get("exDividendDate", "N/A"),
+            "Target Price": info.get("targetMeanPrice", "N/A"),
+            "Recommendation": info.get("recommendationKey", "N/A"),
+        }
+        
+        # Format as JSON string with nice formatting
+        json_str = json.dumps(fundamentals, indent=2)
+        
+        # Add header information
+        header = f"# Fundamental Data for {ticker.upper()}\n"
+        header += f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        header += f"# Source: yfinance\n\n"
+        
+        return header + json_str
+        
+    except Exception as e:
+        return f"Error retrieving fundamentals for {ticker}: {str(e)}"
 
 def get_YFin_data_online(
     symbol: Annotated[str, "ticker symbol of the company"],
