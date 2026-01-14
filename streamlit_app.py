@@ -260,8 +260,59 @@ with col1:
                     st.info("No reports directory found yet.")
                 
             except Exception as e:
-                st.error(f"❌ Error during analysis: {str(e)}")
-                st.exception(e)
+                st.error(f"❌ Error during analysis")
+                
+                # Show error details in an expander
+                with st.expander("🔍 Error Details", expanded=True):
+                    st.error(str(e))
+                    
+                    # Check for common issues
+                    error_msg = str(e).lower()
+                    
+                    if "rate limit" in error_msg or "429" in error_msg:
+                        st.warning("""
+                        **⚠️ Rate Limit Issue**
+                        
+                        Some API providers have rate limits. The system uses fallback providers, but you may need to:
+                        - Wait a few minutes and try again
+                        - Use a different stock ticker
+                        - Check your API key quotas
+                        """)
+                    
+                    elif "api key" in error_msg or "401" in error_msg or "authentication" in error_msg:
+                        st.warning("""
+                        **⚠️ API Key Issue**
+                        
+                        Please check your API keys configuration:
+                        - Ensure all required API keys are set
+                        - Verify keys are valid and active
+                        - Check API key permissions
+                        """)
+                    
+                    elif "network" in error_msg or "connection" in error_msg:
+                        st.warning("""
+                        **⚠️ Network Issue**
+                        
+                        Unable to connect to data providers:
+                        - Check your internet connection
+                        - Try again in a few moments
+                        - Some providers may be temporarily unavailable
+                        """)
+                    
+                    else:
+                        st.info("""
+                        **💡 Troubleshooting Tips:**
+                        - Try a different stock ticker (e.g., MSFT, TSLA, GOOGL)
+                        - Select a recent date (last 7 days)
+                        - Refresh the page and try again
+                        - Check the error message above for specific details
+                        """)
+                    
+                    # Show traceback for debugging
+                    import traceback
+                    with st.expander("🔧 Technical Details (for debugging)"):
+                        st.code(traceback.format_exc())
+                
                 status_text.text("")
                 progress_bar.empty()
 

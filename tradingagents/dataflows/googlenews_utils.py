@@ -60,7 +60,7 @@ def getNewsData(query, start_date, end_date):
         url = (
             f"https://www.google.com/search?q={query}"
             f"&tbs=cdr:1,cd_min:{start_date},cd_max:{end_date}"
-            f"&tbm=nws&start={offset}"
+            f"&tbm=nws&start={str(offset)}"
         )
 
         try:
