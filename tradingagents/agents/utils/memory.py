@@ -25,11 +25,21 @@ class FinancialSituationMemory:
             azure_api_version = config.get("azure_api_version") or os.getenv("AZURE_API_VERSION")
             azure_api_key = config.get("azure_openai_api_key") or os.getenv("AZURE_OPENAI_API_KEY")
             
-            self.client = AzureOpenAI(
-                azure_endpoint=azure_endpoint,
-                api_key=azure_api_key,
-                api_version=azure_api_version,
-            )
+            if not azure_endpoint or not azure_api_key:
+                raise ValueError("Azure OpenAI endpoint and API key are required for memory system")
+            
+            try:
+                self.client = AzureOpenAI(
+                    azure_endpoint=azure_endpoint,
+                    api_key=azure_api_key,
+                    api_version=azure_api_version,
+                )
+            except Exception as e:
+                print(f"[ERROR] Failed to initialize Azure OpenAI client: {e}")
+                raise
+            
+            # Cloud-optimized: Use in-memory ChromaDB for Streamlit Cloud (ephemeral filesystem)
+            # Local: Also use in-memory for simplicity (no persistence needed for demo)
             self.chroma_client = chromadb.Client(Settings(allow_reset=True))
             # Get or create collection (handle existing collections)
             try:
