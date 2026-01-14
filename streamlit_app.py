@@ -107,11 +107,13 @@ with st.sidebar:
     
     # Model Settings
     st.subheader("🤖 AI Model Settings")
+    
+    # Azure OpenAI Deployment Names (these are your actual deployment names in Azure)
     llm_model = st.selectbox(
-        "LLM Model",
-        options=["deepseek-r1", "deepseek-v3", "gpt-4o", "gpt-4o-mini"],
+        "LLM Model (Azure Deployment)",
+        options=["gpt-4o", "gpt-4o-mini", "gpt-35-turbo", "gpt-4"],
         index=0,
-        help="Select the HKBU GenAI model for analysis"
+        help="Select your Azure OpenAI deployment name. Make sure this deployment exists in your Azure OpenAI resource."
     )
     
     debate_rounds = st.slider(
