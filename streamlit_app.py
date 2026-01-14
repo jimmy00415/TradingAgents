@@ -14,6 +14,17 @@ import json
 # Load environment variables
 load_dotenv()
 
+# Set API keys directly (for deployment without .env file)
+os.environ['OPENAI_API_KEY'] = 'bb806427-7dd1-4f92-86a2-aa8748197cca'
+os.environ['AZURE_OPENAI_API_KEY'] = 'bb806427-7dd1-4f92-86a2-aa8748197cca'
+os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://genai.hkbu.edu.hk/api/v0/rest'
+os.environ['AZURE_API_VERSION'] = '2024-12-01-preview'
+os.environ['ALPHA_VANTAGE_API_KEY'] = '5GK3NBVL9YVJI3QV'
+os.environ['FINNHUB_API_KEY'] = 'd227u3pr01qt86776u90d227u3pr01qt86776u9g'
+os.environ['REDDIT_CLIENT_ID'] = 'iFpgQbdAlpGiKCEFHufQxw'
+os.environ['REDDIT_CLIENT_SECRET'] = 'KP6W-3Op9G_kNCAHQUuVYq-OBNz_NA'
+os.environ['REDDIT_USER_AGENT'] = 'TradingAgents:v1.0:by/u/Old-Reflection1388'
+
 # Page configuration
 st.set_page_config(
     page_title="TradingAgents - AI Trading Analysis",
@@ -164,12 +175,18 @@ with col1:
                 status_text.text("🔧 Configuring AI agents...")
                 progress_bar.progress(10)
                 
-                # Configure
+                # Configure with explicit Azure OpenAI settings
                 config = DEFAULT_CONFIG.copy()
                 config["deep_think_llm"] = llm_model
                 config["quick_think_llm"] = llm_model
                 config["max_debate_rounds"] = debate_rounds
                 config["max_risk_discuss_rounds"] = risk_rounds
+                
+                # Ensure Azure OpenAI configuration is complete
+                config["llm_provider"] = "azure"
+                config["backend_url"] = "https://genai.hkbu.edu.hk/api/v0/rest"
+                config["azure_api_version"] = "2024-12-01-preview"
+                config["azure_openai_api_key"] = "bb806427-7dd1-4f92-86a2-aa8748197cca"
                 
                 status_text.text("🤖 Initializing TradingAgents...")
                 progress_bar.progress(20)
